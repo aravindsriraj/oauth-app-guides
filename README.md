@@ -56,6 +56,7 @@ app name or URL
   - "tested" needs a page the browser actually opened;
   - "sourced" needs a page actually read this run, and every number must appear on it;
   - dead links downgrade their claims.
+- **Launch blockers are required answers.** Every guide must state the install cap before review and any reduced limits until review (HubSpot's 25 installs, Slack's 1 request per minute, Gmail's 100 users). Leaving these to chance meant one run missed HubSpot's cap.
 - **Corrections go into the pipeline, not the guides.** When the audit found errors we changed prompts or rules and regenerated; we never hand-edited.
 - **One instance, one live run at a time, 30 new guides a day.** That's the simplest abuse and cost control (about $0.12–0.16 of Gemini usage per guide). Existing guides are served instead of regenerated.
 
@@ -63,13 +64,14 @@ app name or URL
 
 See [VERIFICATION.md](VERIFICATION.md).
 
-I audited all 109 sourced claims in three guides by hand: 42% confirmed, 30% partly supported, 26% not on the cited page, 2% wrong. Each systematic error became a pipeline fix.
+I audited all 109 sourced claims in three guides by hand: 42% confirmed, 30% partly supported, 26% not on the cited page, 2% wrong. Each systematic error became a pipeline fix, and the library was regenerated.
 
-Review also caught Slack's 2025 rate limits for non-Marketplace apps, which the first Slack guide missed.
+Review also caught limits the agents had missed: Slack's 2025 rate limits for non-Marketplace apps, and HubSpot's 25-install cap before listing.
 
 ## Limitations
 
-- **"Sourced" means a page was read and cited, not that a second reader checked it supports the claim.** The audit shows that gap, and two known residual errors remain. Next step: a citation-checking pass that re-reads each cited page.
+- **"Sourced" means a page was read and cited, not that a second reader checked it supports the claim.** Code checks numbers and rate-limit reasons, but not the meaning of every sentence. Next step: a citation-checking pass that re-reads each cited page.
+- **Coverage varies between runs.** An agent can miss a fact one run and find it the next. The required launch-blocker fields cover the facts that matter most.
 - **Nothing behind a login is tested.** No app was submitted for review, so wait times are the providers' own estimates.
 - **Third-party sources for numbers are discouraged in prompts but not blocked in code.** Telling an official domain from a third-party one isn't reliable from the URL alone (Slack's docs moved to docs.slack.dev).
 - **Runs live in memory on a single Cloud Run instance.** A redeploy during a run loses that run, but saved guides are unaffected.

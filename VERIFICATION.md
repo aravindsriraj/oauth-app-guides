@@ -61,7 +61,7 @@ We fixed the pipeline, never the guides by hand, and regenerated the library.
 
 | Finding | Example | Fix | Result after regenerating |
 |---|---|---|---|
-| "Own app = your own rate limits" offered as a reason when limits aren't per app | Linear limits are per user; Pipedrive's daily budget is shared by the whole company account | Prompt: count rate limits only if the provider's limits are per app or project | Fixed for Pipedrive. **Still wrong for Linear** (it says "per OAuth application"; the page says per user). Kept as a known residual error; Gmail correctly keeps it because its quota is per project |
+| "Own app = your own rate limits" offered as a reason when limits aren't per app | Linear limits are per user; Pipedrive's daily budget is shared by the whole company account | A prompt fix wasn't enough: Linear repeated the error three times. Code rule: a rate-limit or quota reason survives only if it names a per-app, per-client or per-project unit and the cited page says the same | Gone from every guide. A correct one, Gmail's per-project quota, still passes the rule |
 | Numbers that aren't on the cited page | Gmail's "100 users" cap cited to a page that never says 100; Pipedrive's "60-minute" token expiry cited to the review page | Code rule: numbers must appear in the text the agent read | Those claims are now uncertain. Synthesized time estimates ("15–30 min") are now honestly uncertain too |
 | URLs only *linked* from a page counted as "seen" | A claim could cite a page that no agent ever opened | Only pages read or returned by search count | Closed |
 | Branding claim overstated | Google shows your app name on the consent screen only after verification | Prompt: say so when branding needs verification | Partly fixed; depends on the model reading it |
@@ -76,13 +76,22 @@ We fixed the pipeline, never the guides by hand, and regenerated the library.
 | **Steps tagged tested, and screenshots on the wrong step.** A signup-page screenshot was attached to "Open API settings". | First Linear run | Code rules: steps are never tested; a screenshot must match its step's page |
 | **Policy text read in the browser tagged as tested.** | Asana run: "no separate developer account" sourced from a docs page | The portal explorer reports `observations` (tested) and `stated` (sourced) separately |
 | **Difficulty flipped between runs.** | Pipedrive: medium, then easy | Rubric rewritten as "the path until any customer can connect", with explicit criteria |
+| **A key limit found in one run and missed in the next.** HubSpot apps distributed through the Marketplace are capped at 25 installs until listed (private apps: 10 allowlisted accounts). One run said "Same day" for any customer. | developers.hubspot.com/docs/apps/developer-platform/build-apps/manage-apps-in-hubspot and the Sep 2025 changelog | The approval researcher must always answer two fields, "install cap before review" and "limits until reviewed". The lead writer must fold them into the launch time. All five guides now state both, with sources |
+| **Downsides presented as reasons to own an app.** Slack listed "avoid unlisted rate limits" as a reason to own your app; it's really a cost of owning an unlisted one. | Slack guide | Prompt: downsides of owning an app go in pitfalls. Slack now shows it as a pitfall and a flag |
 
-### Residual errors in the final library
+### Where the final library stands
 
-These are known and still there:
+Both errors the audit found are fixed in the regenerated library. Every guide now states its install cap and its limits until review, with a source:
 
-- **Linear:** "Dedicated OAuth rate limits" is wrong. Limits are per user, so a shared app doesn't pool them.
-- **Slack:** "Avoid unlisted rate limits" is listed as a reason to own your app. It is really a reason to get your app listed in the Marketplace.
+| App | Install cap before review | Limits until reviewed |
+|---|---|---|
+| Linear | none | standard limits, counted per user |
+| Slack | none | 1 request per minute on message history until Marketplace-listed |
+| HubSpot | 25 installs until listed | standard limits per installing account |
+| Gmail | 100 lifetime users until verified | unverified-app warning |
+| Pipedrive | none for private apps | standard plan limits |
+
+The remaining risk is coverage. Agents can still miss a fact in a given run; the required fields reduce that for the facts that change a launch plan the most.
 
 ## 3. What we could not verify
 
@@ -102,4 +111,6 @@ We chose Flash for everything. A final library guide costs $0.12–0.16 in Gemin
 
 ## 5. Human setup attempt (Linear)
 
-_Pending: the author follows the Linear guide to create a real OAuth app and records what was wrong, missing or confusing here._
+The assignment asks for checks against real sources *or* setup attempts. Sections 2–3 cover the sources. As an extra check, the author follows the Linear guide to create a real OAuth app.
+
+_Notes from that attempt go here._
