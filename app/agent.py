@@ -7,6 +7,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Callable
 
+import httpx
 from composio import Composio, SESSION_PRESET_DIRECT_TOOLS
 from deepagents import create_deep_agent
 from langchain.agents.middleware import ModelCallLimitMiddleware, ToolCallLimitMiddleware
@@ -14,7 +15,7 @@ from langchain.agents.structured_output import ToolStrategy
 from langchain_core.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from app.guide import ApprovalFindings, Claim, GuideDraft, PortalFindings, SetupFindings
+from app.guide import BROKEN, ApprovalFindings, Claim, GuideDraft, PortalFindings, SetupFindings, check_links
 
 ORCH_MODEL = os.environ.get("ORCH_MODEL", "gemini-3.8-flash")
 SUB_MODEL = os.environ.get("SUB_MODEL", "gemini-3.8-flash")
@@ -47,6 +48,7 @@ def _session():
 def _tools(ctx: Ctx, session, who: str):
     """Tools are built per specialist so every progress line says who is working."""
     say = lambda text, url="": ctx.emit({"kind": "line", "who": who, "text": text, "url": url})
+    http = httpx.AsyncClient()
 
     async def run(slug, args):
         r = await asyncio.to_thread(session.execute, slug, arguments=args)
@@ -71,6 +73,9 @@ def _tools(ctx: Ctx, session, who: str):
     async def read_page(url: str) -> str:
         """Read the text of one web page (docs, help center, policy page)."""
         say("reading", url)
+        status = (await check_links({url}, http)).get(url)
+        if status in BROKEN:  # the fetch tool can serve a cached copy of a page that no longer exists
+            return f"{url} no longer exists (HTTP {status}). Find the current page instead."
         try:
             d = await run("COMPOSIO_SEARCH_FETCH_URL_CONTENT", {"urls": [url]})
             text = (d.get("results") or [{}])[0].get("text") or ""
@@ -164,7 +169,7 @@ A step's actor is "agent" only if it needs no login to {ctx.name} (drafting text
 You research what stands between a working {ctx.name} OAuth app and one that any customer can install:
 - for each needed scope: does it trigger review or count as sensitive/restricted? (review: none, review, restricted, unknown);
 - is app review, verification or a marketplace listing required, and when (always, above a user count, only for listing, only for some scopes)? Use approval claims labelled: When required, What's checked, Wait, Cost, Common rejections, Before approval (limits such as test users, token expiry, install caps);
-- limits that apply to apps that are NOT reviewed or listed, even after launch: lower API rate limits, install or user caps, token lifetimes, terms of service restrictions. Check the provider's developer changelog and API terms for recent changes;
+- limits that apply to apps that are NOT reviewed or listed, even after launch: lower API rate limits, install or user caps, token lifetimes, terms of service restrictions. One of your searches must be "{ctx.name} API changelog rate limits unlisted OR unreviewed OR non-marketplace apps";
 - pitfalls specific to review.""" + RULES + budget,
          "tools": [a_search, a_read], "model": sub_model,
          "response_format": ToolStrategy(ApprovalFindings), "middleware": [ModelCallLimitMiddleware(run_limit=12)]},
@@ -193,7 +198,7 @@ Assembly rules:
 - Copy tags and source_urls from the findings exactly. Never upgrade a tag. Only portal-explorer observations may be "tested", and never a step (no one logs in to the provider).
 - If sources conflict, keep the official one and add an "uncertain" pitfall describing the conflict.
 - If a specialist failed or found nothing, write its parts with tag "uncertain" and say what is unknown.
-- difficulty: easy = self-serve, no review for the needed scopes, under an hour. medium = separate developer account, review for some scopes, or a marketplace listing; days. hard = mandatory security review or assessment, weeks, or a cost. difficulty_why: one or two sentences.
+- difficulty rates the path until any customer can connect. easy = only a normal account, no review anywhere on that path. medium = any one of: a separate developer or partner account, review for any needed scope, review or listing needed for broad distribution, install or user caps or reduced limits until reviewed. hard = a mandatory security assessment, a paid program, or weeks of required review. difficulty_why: one or two sentences.
 - dev_time: time until the developer has a working app for their own testing. launch_time: time until any customer can connect, including review waits. Put a short range in each label (e.g. "15-30 min", "Same day", "4-8 weeks") and the explanation in text; unsourced numbers are "uncertain".
 - flags: 0-4 short warnings (e.g. "Security assessment", "Developer account", "Marketplace review", "Paid plan").
 - own_app_reasons: only reasons that apply to {ctx.name}: their own name on the consent screen, scopes beyond Composio's defaults, own rate limits, faster triggers, custom or regional instances.

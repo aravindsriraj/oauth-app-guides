@@ -1,6 +1,7 @@
 [project]
-name = "composio-project"
+name = "oauth-app-guides"
 version = "0.1.0"
+description = "OAuth app setup and approval guides, researched live by agents"
 requires-python = ">=3.13"
 dependencies = [
     "composio>=0.22.0",

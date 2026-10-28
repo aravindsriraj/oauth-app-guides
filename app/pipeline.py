@@ -149,22 +149,23 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
     if isinstance(draft, dict):
         draft = GuideDraft.model_validate(draft)
 
-    draft = Guide(**draft.model_dump(), slug=slug, app_name=name, observed=observed)
-    downgraded = gate(draft, ctx.seen, ctx.browsed, ctx.shots, (facts or {}).get("redirect_uri", ""))
+    guide = Guide(**draft.model_dump(), slug=slug, app_name=name, website=website, logo=(facts or {}).get("logo", ""),
+                  composio=facts or {}, checks=checks, observed=observed, model=ORCH_MODEL,
+                  screenshots=[Entry(label=page, value=ours) for ours, page in ctx.shots.items()])
+    downgraded = gate(guide, ctx.seen, ctx.browsed, ctx.shots, (facts or {}).get("redirect_uri", ""))
     line(f"Evidence check: {downgraded} claim(s) downgraded because their source wasn't seen this run", who="checks")
     async with httpx.AsyncClient() as client:
-        urls = {c.source_url for c in claims(draft) if c.source_url} | {s.url for s in draft.steps if s.url}
-        links = await check_links(urls, client)
-    broken = apply_links(draft, links)
-    line(f"Link check: {len(links)} links, {sum(v in (0, 404, 410) for v in links.values())} broken"
+        urls = {c.source_url for c in claims(guide) if c.source_url} | {s.url for s in guide.steps if s.url}
+        guide.links = await check_links(urls, client)
+    broken = apply_links(guide, guide.links)
+    line(f"Link check: {len(guide.links)} links, {sum(v in (0, 404, 410) for v in guide.links.values())} broken"
          + (f", {broken} claim(s) marked uncertain" if broken else ""), who="checks")
-    today = f"{datetime.now(timezone.utc):%Y-%m-%d}"
-    for c in [*claims(draft), *checks]:
-        c.checked_at = today if c.source_url else ""
-    guide = Guide(**draft.model_dump(exclude={"slug", "app_name"}), slug=slug, app_name=name, website=website, logo=(facts or {}).get("logo", ""),
-                  composio=facts or {}, checks=checks, links=links,
-                  screenshots=[Entry(label=page, value=ours) for ours, page in ctx.shots.items()], generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                  model=ORCH_MODEL, seconds=int(time.time() - t0), trace_url=await asyncio.to_thread(share_trace, run_id))
+    now = datetime.now(timezone.utc)
+    for c in [*claims(guide), *checks]:
+        c.checked_at = f"{now:%Y-%m-%d}" if c.source_url else ""
+    guide.generated_at = now.isoformat(timespec="seconds")
+    guide.seconds = int(time.time() - t0)
+    guide.trace_url = await asyncio.to_thread(share_trace, run_id)
     await asyncio.to_thread(save_guide, guide)
     emit({"kind": "done", "text": f"Guide ready in {guide.seconds}s", "url": f"/guides/{slug}"})
     return guide
