@@ -119,6 +119,6 @@ def guide(request: Request, name: str):
     return page(request, "guide.html", g=g)
 
 
-@app.get("/healthz")
+@app.get("/health")  # Cloud Run reserves paths ending in "z"
 def healthz():
     return PlainTextResponse("ok")

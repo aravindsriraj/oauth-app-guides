@@ -153,7 +153,7 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
                   composio=facts or {}, checks=checks, observed=observed, model=ORCH_MODEL,
                   screenshots=[Entry(label=page, value=ours) for ours, page in ctx.shots.items()])
     downgraded = gate(guide, ctx.seen, ctx.browsed, ctx.shots, (facts or {}).get("redirect_uri", ""))
-    line(f"Evidence check: {downgraded} claim(s) downgraded because their source wasn't seen this run", who="checks")
+    line(f"Evidence check: {downgraded} claim(s) downgraded (source not read this run, or a number not on the cited page)", who="checks")
     async with httpx.AsyncClient() as client:
         urls = {c.source_url for c in claims(guide) if c.source_url} | {s.url for s in guide.steps if s.url}
         guide.links = await check_links(urls, client)
