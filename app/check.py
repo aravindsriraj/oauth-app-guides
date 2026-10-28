@@ -1,5 +1,5 @@
 """Self-check for the deterministic logic: uv run python -m app.check"""
-from app.guide import Claim, Entry, GuideDraft, Step, apply_links, classify_probe, gate, query_for, slugify
+from app.guide import Claim, Entry, GuideDraft, Scope, Step, apply_links, classify_probe, gate, query_for, slugify
 
 # input -> toolkit search query
 assert query_for("https://www.hubspot.com/") == "hubspot"
@@ -68,6 +68,13 @@ d = draft(approval=[Claim(text="Capped at 100 users", tag="sourced", source_url=
 gate(d, seen={"https://docs.x.com/caps": "unverified apps have a user cap", "https://docs.x.com/limits": "OAuth app | 5,000 | hour"},
      browsed=set(), shots={}, redirect_uri="")
 assert [a.tag for a in d.approval] == ["uncertain", "sourced"]
+
+# a sourced scope claim needs its scope string on the cited page
+d = draft(scopes=[Scope(label="crm.objects.contacts.read", text="Read contacts", tag="sourced", review="none", source_url="https://h.com/overview"),
+                  Scope(label="Gmail full access", text="https://mail.google.com/ is restricted", tag="sourced", review="restricted", source_url="https://g.com/restricted")])
+gate(d, seen={"https://h.com/overview": "Scopes provide access to endpoints", "https://g.com/restricted": "restricted scopes include https://mail.google.com/"},
+     browsed=set(), shots={}, redirect_uri="")
+assert [s.tag for s in d.scopes] == ["uncertain", "sourced"]
 
 # "own app = own rate limits" survives only if the cited page counts limits per app/client/project
 d = draft(own_app_reasons=[

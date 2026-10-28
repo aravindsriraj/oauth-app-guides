@@ -1,11 +1,10 @@
-"""Print, for each sourced claim in an audited guide, the best-matching passage from its cited page.
-Usage: uv run python verification/source_passages.py linear"""
+"""Print, for each sourced claim in a saved guide, the best-matching passage from its cited page.
+Usage: uv run python verification/source_passages.py verification/final-linear.json"""
 import json, re, sys
 from composio import Composio
 sys.path.insert(0, ".")
 from app.guide import Guide, claims
-slug = sys.argv[1]
-g = Guide.model_validate_json(open(f"verification/audited-{slug}.json").read())
+g = Guide.model_validate_json(open(sys.argv[1]).read())
 s = Composio().sessions.create(user_id="oauth-guide-bot", session_preset="direct_tools", toolkits=["composio_search"],
     tools={"composio_search": ["COMPOSIO_SEARCH_FETCH_URL_CONTENT"]})
 pages = {}

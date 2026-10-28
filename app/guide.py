@@ -231,6 +231,14 @@ def numbers_on_page(c: Claim, page: str) -> bool:
     return all(x.replace(",", "") in page for x in NUMBER.findall(f"{c.label} {c.text}"))
 
 
+SCOPE = re.compile(r"https?://\S+|[\w-]+(?:[.:][\w*-]+)+")
+
+
+def scope_on_page(s: "Scope", page: str) -> bool:
+    """A scope claim is backed only if one of its scope strings (crm.objects.contacts.read, https://mail.google.com/) is on the page."""
+    return any(t.rstrip(".,;)") in page for t in SCOPE.findall(f"{s.label} {s.text}"))
+
+
 QUOTA = re.compile(r"rate.?limit|quota", re.I)
 UNIT = r"(app|application|client|project)"
 
@@ -261,6 +269,9 @@ def gate(d: GuideDraft, seen: dict[str, str], browsed: set[str], shots: dict[str
             c.tag, c.source_url = "uncertain", ""
         # a sourced number must appear on the page the agent read, or it was made up or misattributed
         if c.tag == "sourced" and not numbers_on_page(c, seen.get(u, "")):
+            c.tag = "uncertain"
+        # likewise a scope's review level is only sourced if the page actually lists that scope
+        if c.tag == "sourced" and isinstance(c, Scope) and not scope_on_page(c, seen.get(u, "")):
             c.tag = "uncertain"
         n += c.tag != before
     # "own app = own rate limits" was the most common wrong claim in the audit: keep it only when the page backs it
