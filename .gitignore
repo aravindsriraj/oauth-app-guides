@@ -1,0 +1,9 @@
+.venv/
+.agents/
+.claude/
+.superpowers/
+.env*
+*.local.json
+__pycache__/
+APM Integrations - Take-home Assignment.md
+out/
