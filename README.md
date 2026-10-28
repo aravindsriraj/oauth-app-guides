@@ -113,5 +113,5 @@ app/pipeline.py   one guide run, storage, CLI
 app/main.py       web routes, live streaming, limits
 app/check.py      self-check
 app/templates/    pages and the Markdown version
-verification/     audited guides, source passages, audit script
+verification/     audited guides; source_passages.py (audit helper); regate.py (re-runs the evidence rules on saved guides)
 ```

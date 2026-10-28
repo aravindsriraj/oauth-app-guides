@@ -111,7 +111,7 @@ def slugify(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
-def facts(d: dict) -> dict:
+def toolkit_facts(d: dict) -> dict:
     """Composio toolkit details -> the ground truth the guide and agents rely on."""
     modes = [a.get("mode") for a in d.get("auth_config_details") or []]
     oauth = next((a for a in d.get("auth_config_details") or [] if a.get("mode") == "OAUTH2"), {})
@@ -139,7 +139,7 @@ async def resolve(app_input: str, client: httpx.AsyncClient) -> dict | None:
     if not pick:
         return None
     r = await client.get(f"{API}/v3.1/toolkits/{pick['slug']}", headers=h)
-    return facts(r.json()) if r.is_success else None
+    return toolkit_facts(r.json()) if r.is_success else None
 
 
 def verdict(c: dict, app_name: str) -> str:

@@ -40,6 +40,12 @@ These rules live in `app/guide.py` (`gate`, `apply_links`, `classify_probe`) and
 - **Tested claims** (2–5 per guide) are browser observations of public pages: login walls, signup forms, "no credit card needed". The screenshots shown in each guide are the evidence. We did not re-run the browser for this audit.
 - **Scopes:** 11 Gmail scopes, 5 Slack, 5 HubSpot, 2 Linear and 2 Pipedrive are shown as uncertain, because the scope-on-page rule found no page listing them. The scope names themselves come from Composio's defaults.
 
+### Rule test on the shipped guides
+
+`uv run python verification/regate.py verification/final-*.json` re-reads every cited page and re-runs the final evidence gate on each shipped guide. **All 206 claims across the five guides keep their tags.** As a control, the same script run on the pre-rules Pipedrive guide (`verification/audited-pipedrive.json`) flags 9 claims, the same ones the first hand audit found.
+
+One known false positive: the numbers rule looks for digits, so "6 months" fails against a page that writes "six months". This errs toward "uncertain", never toward overclaiming.
+
 ### First audit (three earlier guides, 109 sourced claims)
 
 This audit drove the fixes below. It used the same method on the Linear, Pipedrive and Gmail guides from before those fixes, which are kept as `verification/audited-*.json`.
