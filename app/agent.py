@@ -16,8 +16,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.guide import BROKEN, ApprovalFindings, Claim, GuideDraft, PortalFindings, SetupFindings, check_links
 
-ORCH_MODEL = os.environ.get("ORCH_MODEL", "gemini-3.8-flash")
-SUB_MODEL = os.environ.get("SUB_MODEL", "gemini-3.8-flash")
+MODEL = os.environ.get("MODEL", "gemini-3.8-flash")  # won a Flash-vs-Pro comparison on Gmail (VERIFICATION.md)
 PAGE_CHARS = 12000
 
 
@@ -25,7 +24,6 @@ PAGE_CHARS = 12000
 class Ctx:
     """Per-run state shared by the tools and the pipeline."""
     name: str
-    slug: str
     facts: dict
     checks: list[Claim]
     emit: Callable[[dict], None]
@@ -147,7 +145,7 @@ def build(ctx: Ctx):
     s_search, s_read, _ = _tools(ctx, session, "setup researcher")
     a_search, a_read, _ = _tools(ctx, session, "approval researcher")
     _, _, p_browse = _tools(ctx, session, "portal explorer")
-    sub_model = ChatGoogleGenerativeAI(model=SUB_MODEL, max_retries=3)
+    model = ChatGoogleGenerativeAI(model=MODEL, max_retries=3)
     budget = "\nBudget: at most 3 web_search and 4 read_page calls, then give your answer."
     subagents = [
         {"name": "setup-researcher",
@@ -157,10 +155,10 @@ You research how to create the OAuth app on {ctx.name}'s developer platform. Fro
 - which kind of app to create (e.g. public vs private, marketplace vs custom) and why;
 - the developer console URL (portal_url);
 - prerequisites: account type, separate developer account, paid plan or partner program, verified domain, privacy policy and terms URLs, logo, support email, demo video;
-- ordered steps from signing in to the console until you have a client ID and secret (plus submitting for review if required). For each step: the direct page link, and in fields what to enter (redirect URL = the ground-truth redirect URI; scopes = the ground-truth default scopes, translated to the provider's names if needed). Do not include Composio steps;
+- ordered steps from signing in to the console until you have a client ID and secret (plus submitting for review if required). For each step: the direct page link, and in fields only the form fields the docs show for that page, with what to enter (redirect URL = the ground-truth redirect URI; scopes only if the form has a scopes field). If the provider takes scopes in the authorization request instead of the form, say so in a pitfall: Composio sends them. Do not include Composio steps;
 - pitfalls (things that silently break setup) and where to get help.
 A step's actor is "agent" only if it needs no login to {ctx.name} (drafting text, preparing values); otherwise "you".""" + RULES + budget,
-         "tools": [s_search, s_read], "model": sub_model,
+         "tools": [s_search, s_read], "model": model,
          "response_format": ToolStrategy(SetupFindings), "middleware": [ModelCallLimitMiddleware(run_limit=12)]},
         {"name": "approval-researcher",
          "description": f"Finds what it takes for a {ctx.name} OAuth app to be usable by any customer: which scopes trigger review, review process, waits, costs, rejection reasons, limits before approval.",
@@ -170,7 +168,7 @@ You research what stands between a working {ctx.name} OAuth app and one that any
 - is app review, verification or a marketplace listing required, and when (always, above a user count, only for listing, only for some scopes)? Use approval claims labelled: When required, What's checked, Wait, Cost, Common rejections, Before approval (limits such as test users, token expiry, install caps);
 - install_cap and unreviewed_limits (always answer both): how many accounts can install before review or listing, and what lower API limits or terms restrictions apply to apps that are not reviewed or listed, even after launch. Read the provider's page on app distribution or install limits, and make one search "{ctx.name} API changelog install limits rate limits unlisted OR unreviewed OR non-marketplace apps";
 - pitfalls specific to review.""" + RULES + budget,
-         "tools": [a_search, a_read], "model": sub_model,
+         "tools": [a_search, a_read], "model": model,
          "response_format": ToolStrategy(ApprovalFindings), "middleware": [ModelCallLimitMiddleware(run_limit=12)]},
         {"name": "portal-explorer",
          "description": f"Uses a real browser on {ctx.name}'s public developer pages: is signup self-serve, is a credit card or paid plan needed, where app creation starts; takes screenshots.",
@@ -181,7 +179,7 @@ Find out: whether developer signup is self-serve or 'contact sales'; whether it 
 Split what you report:
 - observations: only what the browser itself experienced (the signup form asked for X, the console URL redirected to a login wall, a pricing gate appeared). Tag "tested", source_url = a URL from that browse call's "visited" list.
 - stated: what the pages say (requirements, policies, docs text). Tag "sourced", never "tested". List the screenshot URLs exactly as browse returned them, with a short caption.""" + RULES,
-         "tools": [p_browse], "model": sub_model,
+         "tools": [p_browse], "model": model,
          "response_format": ToolStrategy(PortalFindings),
          "middleware": [ModelCallLimitMiddleware(run_limit=6), ToolCallLimitMiddleware(tool_name="browse", run_limit=3)]},
     ]
@@ -205,7 +203,6 @@ Assembly rules:
 - steps: from the setup findings. Attach a portal-explorer screenshot only to a step whose url is the page that screenshot shows. Use the ground-truth redirect URI. Do not add Composio steps; the page adds them.
 - email_subject / email_body: a ready-to-send email to {ctx.name}'s developer support asking about OAuth app requirements, review and timelines for this use case, with [placeholders] for the sender's details.
 - If {ctx.name} does not offer OAuth for third-party apps, say so in difficulty_why and app_type and describe the alternative.""" + RULES
-    orch_model = ChatGoogleGenerativeAI(model=ORCH_MODEL, max_retries=3)
-    return create_deep_agent(model=orch_model, system_prompt=system, subagents=subagents,
+    return create_deep_agent(model=model, system_prompt=system, subagents=subagents,
                              response_format=ToolStrategy(GuideDraft),
                              middleware=[ModelCallLimitMiddleware(run_limit=8)], name="oauth-guide")

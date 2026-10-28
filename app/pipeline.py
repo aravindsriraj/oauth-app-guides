@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 import httpx
 from google.cloud import storage
 
-from app.agent import ORCH_MODEL, Ctx, build
+from app.agent import MODEL, Ctx, build
 from app.guide import (PROBE_TEXT, Claim, Entry, Guide, GuideDraft, apply_links, check_links, claims, gate, probe_authorize,
                        resolve, slugify)
 
@@ -71,12 +71,11 @@ def share_trace(run_id: uuid.UUID) -> str:
         return ""
 
 
-async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = False) -> Guide | None:
+async def run(app_input: str, emit, facts: dict | None) -> Guide | None:
+    """facts: the Composio toolkit details from resolve(), or None if Composio has no toolkit for this app."""
     t0 = time.time()
     line = lambda text, tag="", url="", who="checks": emit({"kind": "line", "who": who, "text": text, "tag": tag, "url": url})
     async with httpx.AsyncClient(timeout=15) as client:
-        if not resolved:
-            facts = await resolve(app_input, client)
         name = facts["name"] if facts else app_input.strip()
         slug = slugify(facts["toolkit"] if facts else name)
         checks: list[Claim] = []
@@ -108,7 +107,7 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
             kind, _ = results[0]
             check("Authorize URL", PROBE_TEXT[kind], facts["authorize_url"])
 
-    ctx = Ctx(name=name, slug=slug, facts=facts or {}, checks=checks, emit=emit, upload=lambda u: upload_shot(u, slug))
+    ctx = Ctx(name=name, facts=facts or {}, checks=checks, emit=emit, upload=lambda u: upload_shot(u, slug))
     ctx.seen.update({u: "" for u in [website, (facts or {}).get("authorize_url", ""), "https://docs.composio.dev/toolkits/managed-auth"] if u})
     agent = build(ctx)
     run_id = uuid.uuid4()
@@ -154,7 +153,7 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
         draft = GuideDraft.model_validate(draft)
 
     guide = Guide(**draft.model_dump(), slug=slug, app_name=name, website=website, logo=(facts or {}).get("logo", ""),
-                  composio=facts or {}, checks=checks, observed=observed, model=ORCH_MODEL,
+                  composio=facts or {}, checks=checks, observed=observed, model=MODEL,
                   screenshots=[Entry(label=page, value=ours) for ours, page in ctx.shots.items()])
     downgraded = gate(guide, ctx.seen, ctx.browsed, ctx.shots, (facts or {}).get("redirect_uri", ""))
     line(f"Evidence check: {downgraded} claim(s) downgraded (source not read this run, or a number not on the cited page)", who="checks")
@@ -199,7 +198,11 @@ if __name__ == "__main__":
     def emit(e):
         tag = f"[{e.get('tag')}] " if e.get("tag") else ""
         print(f"{e.get('who', e['kind']):>20} | {tag}{e.get('text', '')} {e.get('url', '')}", flush=True)
-    g = asyncio.run(run(" ".join(sys.argv[1:]), emit))
+    async def cli(app_input):
+        async with httpx.AsyncClient(timeout=15) as client:
+            facts = await resolve(app_input, client)
+        return await run(app_input, emit, facts)
+    g = asyncio.run(cli(" ".join(sys.argv[1:])))
     if g:
         os.makedirs("out", exist_ok=True)
         with open(f"out/{g.slug}.{g.model}.json", "w") as f:  # local copy for comparisons and verification

@@ -10,6 +10,7 @@ th { font-size: 13.5px; color: var(--ink-3); font-weight: 600; }
 tr:last-child td { border-bottom: 0; }
 td.app a { font-weight: 700; color: var(--ink); text-decoration: none; display: flex; gap: 10px; align-items: center; }
 td.app img { width: 22px; height: 22px; border-radius: 4px; }
+td.app .muted { font-size: 12.5px; }
 .diff { font-weight: 700; } .diff.easy { color: var(--tested); } .diff.medium { color: var(--uncertain); } .diff.hard { color: var(--hard); }
 .flags { color: var(--ink-2); font-size: 14px; }
 @media (max-width: 720px) { th.opt, td.opt { display: none; } form.ask { flex-direction: column; } }
@@ -28,13 +29,14 @@ Each guide is researched by agents that read the provider's docs and visit its p
 {% if active %}<p class="running">Agents are researching <strong>{{ active }}</strong> now. <a href="/live/{{ active_slug }}">Watch live</a></p>{% endif %}
 
 <h2>Library</h2>
+<p class="muted">Guides marked audited were checked claim by claim against their sources. The others were generated live by visitors.</p>
 {% if guides %}
 <table>
   <thead><tr><th>App</th><th>Difficulty</th><th class="opt">Working in development</th><th class="opt">Ready for any customer</th><th class="opt">Watch out for</th></tr></thead>
   <tbody>
   {% for g in guides %}
   <tr>
-    <td class="app"><a href="/guides/{{ g.slug }}">{% if g.logo %}<img src="{{ g.logo }}" alt="">{% endif %}{{ g.app_name }}</a></td>
+    <td class="app"><a href="/guides/{{ g.slug }}">{% if g.logo %}<img src="{{ g.logo }}" alt="">{% endif %}{{ g.app_name }}</a>{% if g.slug in audited %}<span class="muted">Audited</span>{% endif %}</td>
     <td><span class="diff {{ g.difficulty }}">{{ g.difficulty|capitalize }}</span></td>
     <td class="opt">{{ g.dev_time.label or g.dev_time.text|truncate(60) }}</td>
     <td class="opt">{{ g.launch_time.label or g.launch_time.text|truncate(60) }}</td>

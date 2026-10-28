@@ -61,7 +61,8 @@ footer.meta { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--l
 <article>
 <div class="title">{% if g.logo %}<img src="{{ g.logo }}" alt="">{% endif %}<h1>{{ g.app_name }}: OAuth app setup guide</h1></div>
 <p class="muted">Researched by agents on {{ g.generated_at[:10] }} in {{ g.seconds }} seconds.
-{% if g.trace_url %}<a href="{{ g.trace_url }}" target="_blank" rel="noopener">See every search, page and browser step behind this guide</a>.{% endif %}</p>
+{% if g.trace_url %}<a href="{{ g.trace_url }}" target="_blank" rel="noopener">See every search, page and browser step behind this guide</a>.{% endif %}
+{% if g.slug in audited %}A person also checked each sourced claim against its page (<a href="https://github.com/aravindsriraj/oauth-app-guides/blob/main/VERIFICATION.md" target="_blank" rel="noopener">audit</a>).{% else %}Generated live and not yet checked by a person; the tags still show what the agents could back up.{% endif %}</p>
 <div class="legend"><span><span class="tag tested">Tested</span> seen during research</span><span><span class="tag sourced">Sourced</span> stated on the linked page</span><span><span class="tag uncertain">Uncertain</span> check before relying on it</span></div>
 
 <section id="summary" class="summary">
