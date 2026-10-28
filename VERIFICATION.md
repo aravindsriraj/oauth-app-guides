@@ -20,9 +20,28 @@ Every guide is checked by plain code, not by the model, before it is saved:
 
 These rules live in `app/guide.py` (`gate`, `apply_links`, `classify_probe`) and are exercised by `uv run python -m app.check`.
 
-## 2. Manual audit of three guides (109 sourced claims)
+## 2. Audit of the shipped library (all five guides, 144 sourced claims)
 
-**Method.** For every claim tagged sourced in the Linear, Pipedrive and Gmail guides, we fetched the cited page with the same Composio tool the agents use. We pulled the passages that best match the claim (`verification/source_passages.py`, output in `verification/passages-*.txt`) and read each claim against its page. Where a number or rule mattered, we searched the full page for it. The audited guides are saved as `verification/audited-*.json`.
+**Method.** The guides live on the site are saved as `verification/final-*.json`. For every claim tagged sourced, we fetched the cited page with the same Composio tool the agents use and pulled the best-matching passages (`uv run python verification/source_passages.py verification/final-linear.json`). We then read each claim against its page. Where a number, scope or rule mattered, we searched the full page for it. The passages aren't committed because they're copied documentation text; the script regenerates them.
+
+| Guide | Sourced claims | Confirmed | Partly supported | Not on the cited page | Wrong |
+|---|---|---|---|---|---|
+| Linear | 22 | 12 | 6 | 3 | 1 |
+| Slack | 28 | 11 | 14 | 3 | 0 |
+| HubSpot | 30 | 22 | 6 | 2 | 0 |
+| Gmail | 34 | 17 | 16 | 1 | 0 |
+| Pipedrive | 30 | 22 | 5 | 3 | 0 |
+| **Total** | **144** | **84 (58%)** | **47 (33%)** | **12 (8%)** | **1 (0.7%)** |
+
+- **The one wrong claim:** Linear, step "Configure application details", tells you to "select the required scopes" in the app form. Linear's form has no scope field: the manifest docs list every form field and none is a scope. Scopes go in the authorization URL, which Composio builds. We left it in the guide (our policy is to fix the pipeline, never hand-edit) and flag it here.
+- **Not on the cited page (12):** mostly plausible absences ("no install cap", "no fee") and consent-screen branding claims cited to a general OAuth page.
+- **Partly supported (47):** the core fact is on the page but a detail isn't, such as a button label, "5 to 10 workspaces" where Slack says "5 or more", or a phrase like "CASA Tier 2".
+- **Tested claims** (2–5 per guide) are browser observations of public pages: login walls, signup forms, "no credit card needed". The screenshots shown in each guide are the evidence. We did not re-run the browser for this audit.
+- **Scopes:** 11 Gmail scopes, 5 Slack, 5 HubSpot, 2 Linear and 2 Pipedrive are shown as uncertain, because the scope-on-page rule found no page listing them. The scope names themselves come from Composio's defaults.
+
+### First audit (three earlier guides, 109 sourced claims)
+
+This audit drove the fixes below. It used the same method on the Linear, Pipedrive and Gmail guides from before those fixes, which are kept as `verification/audited-*.json`.
 
 | Guide | Sourced claims | Confirmed | Partly supported | Not on the cited page | Wrong |
 |---|---|---|---|---|---|
@@ -33,9 +52,9 @@ These rules live in `app/guide.py` (`gate`, `apply_links`, `classify_probe`) and
 
 - **Confirmed:** the page states it.
 - **Partly supported:** the gist is on the page but a detail (a button label, a time estimate) is not.
-- **Not on the cited page:** the claim may be true but its citation doesn't show it. 16 of the 28 are scope descriptions cited to a general page instead of the scope reference.
+- **Not on the cited page:** the claim may be true but its citation doesn't show it. 16 of the 28 were scope descriptions cited to a general page, which led to the scope-on-page rule.
 
-### High-stakes facts we confirmed on the provider's own pages
+### High-stakes facts confirmed on the provider's own pages (both audits)
 
 - **Gmail**
   - Restricted scopes require an annual third-party security assessment from a Google-approved assessor (support.google.com/cloud/answer/13464321).
@@ -81,15 +100,15 @@ We fixed the pipeline, never the guides by hand, and regenerated the library.
 
 ### Where the final library stands
 
-Both errors the audit found are fixed in the regenerated library. Every guide now states its install cap and its limits until review, with a source:
+Both errors from the first audit are gone from the shipped guides. Every guide states its install cap and its limits until review, with a source:
 
 | App | Install cap before review | Limits until reviewed |
 |---|---|---|
-| Linear | none | standard limits, counted per user |
-| Slack | none | 1 request per minute on message history until Marketplace-listed |
-| HubSpot | 25 installs until listed | standard limits per installing account |
-| Gmail | 100 lifetime users until verified | unverified-app warning |
-| Pipedrive | none for private apps | standard plan limits |
+| Linear | none found | 5,000 requests per hour per user (confirmed) |
+| Slack | none found | Tier 1 (1 request per minute) on `conversations.history` and `conversations.replies` until Marketplace-approved (confirmed) |
+| HubSpot | 25 installs until listed; 10 accounts for private apps (confirmed) | 110 requests per 10 seconds per installing account (confirmed) |
+| Gmail | 100 test users in testing mode; 100-user cap when unverified (confirmed) | testing authorizations expire after 7 days (confirmed) |
+| Pipedrive | none for live private apps (confirmed) | standard plan limits |
 
 The remaining risk is coverage. Agents can still miss a fact in a given run; the required fields reduce that for the facts that change a launch plan the most.
 
@@ -111,6 +130,4 @@ We chose Flash for everything. A final library guide costs $0.12–0.16 in Gemin
 
 ## 5. Human setup attempt (Linear)
 
-The assignment asks for checks against real sources *or* setup attempts. Sections 2–3 cover the sources. As an extra check, the author follows the Linear guide to create a real OAuth app.
-
-_Notes from that attempt go here._
+The assignment asks for checks against real sources *or* setup attempts. Sections 1–3 cover the sources. A hands-on attempt needs a real Linear login, which the agents never do by design (section 3). It has **not been done yet**. The author plans to follow the Linear guide and record the results here.
