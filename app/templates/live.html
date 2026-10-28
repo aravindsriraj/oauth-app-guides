@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Researching {{ name }} · OAuth App Guides{% endblock %}
+{% block head %}
+<style>
+.team { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 18px 0 8px; font-size: 15px; }
+.team span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; background: var(--line); }
+.team span.working::before { background: var(--sourced); }
+.team span.finished::before { background: var(--tested); }
+#feed { list-style: none; padding: 0; margin: 20px 0; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+#feed li { display: grid; grid-template-columns: 150px 1fr; gap: 12px; padding: 7px 14px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+#feed li:last-child { border-bottom: 0; }
+#feed .who { color: var(--ink-3); }
+#feed .what a { word-break: break-all; }
+#status { font-weight: 600; }
+@media (max-width: 640px) { #feed li { grid-template-columns: 1fr; gap: 0; } }
+</style>
+{% endblock %}
+{% block main %}
+<h1>Researching {{ name }}</h1>
+<p class="lede">Three specialist agents work in parallel: one reads the setup docs, one reads the review and approval rules,
+and one opens {{ name }}'s public developer pages in a real browser. Plain code checks the facts they can't be trusted to judge.</p>
+<div class="team" aria-label="Agents">
+  <span id="t-setup-researcher">Setup researcher</span><span id="t-approval-researcher">Approval researcher</span>
+  <span id="t-portal-explorer">Portal explorer</span><span id="t-orchestrator">Lead writer</span>
+</div>
+<p id="status" role="status">Starting…</p>
+<p class="muted">You can close this tab; the guide still gets saved. Reopen this page to pick up where you left off.</p>
+<ol id="feed" aria-live="polite"></ol>
+<script>
+const feed = document.getElementById("feed"), status = document.getElementById("status");
+const mark = (who, state) => { const el = document.getElementById("t-" + who.replaceAll(" ", "-")); if (el && !el.classList.contains("finished")) el.className = state; };
+const src = new EventSource("/live/{{ slug }}/events");
+src.onmessage = (m) => {
+  const e = JSON.parse(m.data);
+  if (e.kind === "done") {
+    status.innerHTML = `${e.text}. <a href="${e.url}">Open the guide</a>`;
+    setTimeout(() => location.assign(e.url), 2500); return;
+  }
+  if (e.kind === "error") { status.textContent = e.text; return; }
+  const who = e.who || "";
+  mark(who.replace("lead writer", "orchestrator"), /finished/.test(e.text) ? "finished" : "working");
+  if (who === "orchestrator" && e.text.startsWith("→")) mark(e.text.slice(2).split(":")[0], "working");
+  status.textContent = "Researching…";
+  const li = document.createElement("li"); li.className = "fresh";
+  const w = document.createElement("span"); w.className = "who"; w.textContent = who === "orchestrator" ? "lead writer" : who;
+  const t = document.createElement("span"); t.className = "what";
+  if (e.tag) { const b = document.createElement("span"); b.className = "tag " + e.tag; b.textContent = e.tag; t.append(b, " "); }
+  t.append(e.text + " ");
+  if (e.url && /^https?:/.test(e.url)) { const a = document.createElement("a"); a.href = e.url; a.textContent = new URL(e.url).host + new URL(e.url).pathname; a.target = "_blank"; a.rel = "noopener"; t.append(a); }
+  li.append(w, t); feed.append(li);
+  li.scrollIntoView({block: "nearest"});
+};
+src.addEventListener("end", () => src.close());
+</script>
+{% endblock %}

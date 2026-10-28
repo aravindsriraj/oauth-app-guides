@@ -191,7 +191,7 @@ Assembly rules:
 - If sources conflict, keep the official one and add an "uncertain" pitfall describing the conflict.
 - If a specialist failed or found nothing, write its parts with tag "uncertain" and say what is unknown.
 - difficulty: easy = self-serve, no review for the needed scopes, under an hour. medium = separate developer account, review for some scopes, or a marketplace listing; days. hard = mandatory security review or assessment, weeks, or a cost. difficulty_why: one or two sentences.
-- dev_time: time until the developer has a working app for their own testing. launch_time: time until any customer can connect, including review waits. Give ranges; unsourced numbers are "uncertain".
+- dev_time: time until the developer has a working app for their own testing. launch_time: time until any customer can connect, including review waits. Put a short range in each label (e.g. "15-30 min", "Same day", "4-8 weeks") and the explanation in text; unsourced numbers are "uncertain".
 - flags: 0-4 short warnings (e.g. "Security assessment", "Developer account", "Marketplace review", "Paid plan").
 - own_app_reasons: only reasons that apply to {ctx.name}: their own name on the consent screen, scopes beyond Composio's defaults, own rate limits, faster triggers, custom or regional instances.
 - steps: from the setup findings. Attach a portal-explorer screenshot only to a step whose url is the page that screenshot shows. Use the ground-truth redirect URI. Do not add Composio steps; the page adds them.

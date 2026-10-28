@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}OAuth App Guides{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,600;0,800;1,400&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1b2330; --ink-2: #4a5566; --ink-3: #7a8494; --paper: #f3f5f4; --card: #ffffff; --line: #d9dfdc;
+  --tested: #1f7a4d; --tested-bg: #e3f3ea; --sourced: #2b58c4; --sourced-bg: #e6edfb;
+  --uncertain: #a86200; --uncertain-bg: #fbf0dc; --hard: #b3261e; --focus: #2b58c4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e7ebf0; --ink-2: #b4bdc9; --ink-3: #8a94a3; --paper: #12171e; --card: #1a2029; --line: #2c3440;
+    --tested: #5cc98d; --tested-bg: #16301f; --sourced: #86a8f5; --sourced-bg: #18233d;
+    --uncertain: #f0ad4e; --uncertain-bg: #36290f; --hard: #f2817a; --focus: #86a8f5;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 "Public Sans", system-ui, sans-serif; }
+a { color: var(--sourced); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+code, .mono { font: 13.5px/1.5 "JetBrains Mono", ui-monospace, monospace; }
+header.site { border-bottom: 1px solid var(--line); background: var(--card); }
+header.site .in { max-width: 1040px; margin: 0 auto; padding: 14px 20px; display: flex; gap: 16px; align-items: baseline; }
+header.site a.home { color: var(--ink); text-decoration: none; font-weight: 800; letter-spacing: -0.01em; }
+header.site span { color: var(--ink-3); font-size: 14px; }
+main { max-width: 1040px; margin: 0 auto; padding: 32px 20px 80px; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.1; letter-spacing: -0.025em; font-weight: 800; margin: 0 0 12px; }
+h2 { font-size: 22px; letter-spacing: -0.01em; margin: 44px 0 12px; }
+h3 { font-size: 17px; margin: 22px 0 8px; }
+p { max-width: 70ch; }
+.lede { font-size: 18px; color: var(--ink-2); max-width: 62ch; }
+.muted { color: var(--ink-3); font-size: 14px; }
+button, .btn { font: 600 15px "Public Sans", sans-serif; background: var(--ink); color: var(--paper); border: 0; border-radius: 6px;
+  padding: 11px 18px; cursor: pointer; text-decoration: none; display: inline-block; }
+button.quiet, .btn.quiet { background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 6px 12px; font-size: 14px; }
+
+/* evidence marks: the one loud thing on every page */
+.ev { border-left: 4px solid var(--line); padding: 2px 0 2px 12px; margin: 10px 0; }
+.ev.tested { border-color: var(--tested); } .ev.sourced { border-color: var(--sourced); } .ev.uncertain { border-color: var(--uncertain); border-left-style: dashed; }
+.tag { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 0 8px; border-radius: 10px; white-space: nowrap; }
+.tag.tested { background: var(--tested-bg); color: var(--tested); } .tag.sourced { background: var(--sourced-bg); color: var(--sourced); }
+.tag.uncertain { background: var(--uncertain-bg); color: var(--uncertain); }
+.src { font-size: 13.5px; color: var(--ink-3); }
+.src a { color: var(--ink-3); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 14px; color: var(--ink-2); }
+@media (prefers-reduced-motion: no-preference) { .fresh { animation: in .35s ease-out; } @keyframes in { from { opacity: 0; transform: translateY(4px); } } }
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+<header class="site"><div class="in"><a class="home" href="/">OAuth App Guides</a><span>Setup and approval guides for apps your agent connects through Composio</span></div></header>
+<main>{% block main %}{% endblock %}</main>
+</body>
+</html>

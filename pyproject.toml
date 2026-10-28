@@ -4,7 +4,6 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "composio>=0.22.0",
-    "composio-langchain>=0.30.0",
     "deepagents>=0.7.32",
     "fastapi>=0.162.0",
     "google-cloud-storage>=3.17.1",

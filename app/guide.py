@@ -40,8 +40,8 @@ class Scope(Claim):
 class GuideDraft(BaseModel):
     difficulty: Literal["easy", "medium", "hard"]
     difficulty_why: str
-    dev_time: Claim = Field(description="Time to a working OAuth app in development/testing, as a range")
-    launch_time: Claim = Field(description="Time until any user can connect, including review waits, as a range")
+    dev_time: Claim = Field(description="label = short range like '15-30 min'; text = what that time covers, until the developer has a working app for their own testing")
+    launch_time: Claim = Field(description="label = short range like 'Same day' or '4-8 weeks'; text = what that covers, until any customer can connect, including review waits")
     flags: list[str] = Field(description="Short warnings, e.g. 'Security assessment', 'Paid plan required'")
     own_app_reasons: list[Claim] = Field(description="Reasons a developer would need their own OAuth app for this provider")
     app_type: Claim = Field(description="Which kind of app to create on the provider's platform and why")

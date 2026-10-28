@@ -54,4 +54,15 @@ d = draft(pitfalls=[Claim(text="p", tag="sourced", source_url="https://docs.x.co
 assert apply_links(d, {"https://docs.x.com/gone": 404, "https://docs.x.com/blocked": 403}) == 1
 assert [p.tag for p in d.pitfalls] == ["uncertain", "sourced"]
 
+# markdown version of a guide renders all ten sections
+from app.guide import Guide
+from app.main import T
+g = Guide(**draft().model_dump(), slug="x", app_name="X", composio={
+    "toolkit": "x", "auth_modes": ["OAUTH2"], "managed": False, "redirect_uri": "https://backend.composio.dev/api/v1/auth-apps/add"})
+md = T.get_template("guide.md").render(g=g)
+heads = [l for l in md.splitlines() if l.startswith("## ")]
+assert heads == ["## Summary", "## Do you need your own app?", "## Before you start", "## Create the app", "## Permissions",
+                 "## Getting approved", "## Pitfalls", "## When you're stuck", "## Connect it to Composio", "## Sources and gaps"], heads
+assert "Yes: Composio doesn't provide an OAuth app for X" in md
+
 print("ok")

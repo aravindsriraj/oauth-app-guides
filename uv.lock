@@ -318,25 +318,11 @@ wheels = [
 ]
 
 [[package]]
-name = "composio-langchain"
-version = "0.30.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "composio" },
-    { name = "langchain" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/5a/60/98fd431d0803e8c1ae533ee49b172982a227459ad877d9bdfad2e139df1d/composio_langchain-0.30.0.tar.gz", hash = "sha256:8712053f01f0bf44a4089f3fdd167107762fd75a0b94d741fee20b474ab47aae", size = 3783, upload-time = "2026-10-22T12:50:53.991Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/41/49/7eae4910e194f4bd8e8eb6bede0883f99831f79eb8f40d279a42fbdde207/composio_langchain-0.30.0-py3-none-any.whl", hash = "sha256:8f7c2fc789be6901d3075c7249c31ddf87a11666084b9e59c3bb790030b3958d", size = 4061, upload-time = "2026-10-22T12:50:38.957Z" },
-]
-
-[[package]]
 name = "composio-project"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "composio" },
-    { name = "composio-langchain" },
     { name = "deepagents" },
     { name = "fastapi" },
     { name = "google-cloud-storage" },
@@ -351,7 +337,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "composio", specifier = ">=0.22.0" },
-    { name = "composio-langchain", specifier = ">=0.30.0" },
     { name = "deepagents", specifier = ">=0.7.32" },
     { name = "fastapi", specifier = ">=0.162.0" },
     { name = "google-cloud-storage", specifier = ">=3.17.1" },
