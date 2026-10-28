@@ -81,6 +81,8 @@ class SetupFindings(BaseModel):
 
 
 class ApprovalFindings(BaseModel):
+    install_cap: Claim = Field(description="Most accounts, users or workspaces that can install before review or listing; 'No cap found' if none")
+    unreviewed_limits: Claim = Field(description="Lower API limits or terms restrictions for apps that are not reviewed or listed; 'None found' if none")
     scopes: list[Scope]
     approval: list[Claim]
     pitfalls: list[Claim]
@@ -229,6 +231,17 @@ def numbers_on_page(c: Claim, page: str) -> bool:
     return all(x.replace(",", "") in page for x in NUMBER.findall(f"{c.label} {c.text}"))
 
 
+QUOTA = re.compile(r"rate.?limit|quota", re.I)
+UNIT = r"(app|application|client|project)"
+
+
+def per_app_limits(c: Claim, page: str) -> bool:
+    """True if the claim says limits are counted per app/client/project and the page says the same."""
+    m = re.search(rf"\bper (?:\w+ )?{UNIT}\b|\b{UNIT}[- ]level\b", c.text, re.I)
+    unit = m and (m.group(1) or m.group(2)).lower()
+    return bool(unit) and bool(re.search(rf"\bper (?:\w+ )?{unit}\b|\b{unit}[- ]level\b", page, re.I))
+
+
 def gate(d: GuideDraft, seen: dict[str, str], browsed: set[str], shots: dict[str, str], redirect_uri: str) -> int:
     """Enforce the evidence rules in place; returns how many claims were downgraded.
     seen maps each url the agents read this run to the text they saw there;
@@ -250,6 +263,11 @@ def gate(d: GuideDraft, seen: dict[str, str], browsed: set[str], shots: dict[str
         if c.tag == "sourced" and not numbers_on_page(c, seen.get(u, "")):
             c.tag = "uncertain"
         n += c.tag != before
+    # "own app = own rate limits" was the most common wrong claim in the audit: keep it only when the page backs it
+    kept = [c for c in d.own_app_reasons
+            if not QUOTA.search(f"{c.label} {c.text}") or per_app_limits(c, seen.get(norm(c.source_url), ""))]
+    n += len(d.own_app_reasons) - len(kept)
+    d.own_app_reasons = kept
     for s in d.steps:
         if not s.url.startswith(("http://", "https://")):
             s.url = ""

@@ -69,6 +69,15 @@ gate(d, seen={"https://docs.x.com/caps": "unverified apps have a user cap", "htt
      browsed=set(), shots={}, redirect_uri="")
 assert [a.tag for a in d.approval] == ["uncertain", "sourced"]
 
+# "own app = own rate limits" survives only if the cited page counts limits per app/client/project
+d = draft(own_app_reasons=[
+    Claim(text="Your own client allocation rather than sharing rate limits", tag="sourced", source_url="https://l.app/limits"),
+    Claim(text="Quota is counted per project, so you get your own", tag="sourced", source_url="https://g.com/quota"),
+    Claim(text="Your own name on the consent screen", tag="sourced", source_url="https://g.com/quota")])
+gate(d, seen={"https://l.app/limits": "OAuth App | 5,000 | User", "https://g.com/quota": "Per minute per project: units"},
+     browsed=set(), shots={}, redirect_uri="")
+assert [c.text[:5] for c in d.own_app_reasons] == ["Quota", "Your "], d.own_app_reasons
+
 # markdown version of a guide renders all ten sections
 from app.main import T
 g = Guide(**draft().model_dump(), slug="x", app_name="X", composio={
