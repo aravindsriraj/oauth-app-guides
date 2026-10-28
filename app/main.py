@@ -16,12 +16,12 @@ from app.guide import claims, resolve, slugify, verdict
 app = FastAPI()
 T = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 T.env.filters["domain"] = lambda u: urlparse(u).netloc.removeprefix("www.")
+AUDITED = {"linear", "slack", "hubspot", "gmail", "pipedrive"}  # checked claim by claim, see VERIFICATION.md
 T.env.globals.update(verdict=verdict, claims=claims, audited=AUDITED)
 DAILY_CAP = int(os.environ.get("DAILY_CAP", "30"))
 RUNS: dict[str, dict] = {}   # slug -> {"name", "events", "done", "task"}; one instance, so memory is the truth
 ACTIVE: str | None = None    # slug of the one live run allowed at a time
 ORDER = {"easy": 0, "medium": 1, "hard": 2}
-AUDITED = {"linear", "slack", "hubspot", "gmail", "pipedrive"}  # checked claim by claim, see VERIFICATION.md
 
 
 def page(request, template, status=200, **ctx):
