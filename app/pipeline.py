@@ -109,7 +109,7 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
             check("Authorize URL", PROBE_TEXT[kind], facts["authorize_url"])
 
     ctx = Ctx(name=name, slug=slug, facts=facts or {}, checks=checks, emit=emit, upload=lambda u: upload_shot(u, slug))
-    ctx.seen.update(u for u in [website, (facts or {}).get("authorize_url", ""), "https://docs.composio.dev/toolkits/managed-auth"] if u)
+    ctx.seen.update({u: "" for u in [website, (facts or {}).get("authorize_url", ""), "https://docs.composio.dev/toolkits/managed-auth"] if u})
     agent = build(ctx)
     run_id = uuid.uuid4()
     config = {"run_id": run_id, "run_name": f"guide: {name}", "recursion_limit": 120}

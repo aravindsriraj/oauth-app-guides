@@ -36,7 +36,7 @@ d = draft(prerequisites=[
                url="https://x.com/settings/api", screenshot="https://ours/1.png"),                  # shot shows another page
           Step(text="sign up", tag="sourced", source_url="https://x.com/signup", actor="you",
                url="https://x.com/signup/", screenshot="https://ours/1.png")])                      # shot shows this page
-n = gate(d, seen={"https://docs.x.com/a", "https://x.com/signup"}, browsed={"https://x.com/signup"},
+n = gate(d, seen={"https://docs.x.com/a": "", "https://x.com/signup": ""}, browsed={"https://x.com/signup"},
          shots={"https://ours/1.png": "https://x.com/signup"}, redirect_uri="https://backend.composio.dev/api/v1/auth-apps/add")
 tags = [p.tag for p in d.prerequisites]
 assert tags == ["tested", "sourced", "uncertain", "uncertain", "uncertain"], tags
@@ -59,8 +59,15 @@ from app.guide import Guide
 g = Guide(**draft().model_dump(), slug="x", app_name="X", observed=[
     Claim(text="login wall", tag="tested", source_url="https://x.com/signup"),
     Claim(text="read in docs", tag="tested", source_url="https://docs.x.com/a")])
-gate(g, seen={"https://docs.x.com/a"}, browsed={"https://x.com/signup"}, shots={}, redirect_uri="")
+gate(g, seen={"https://docs.x.com/a": ""}, browsed={"https://x.com/signup"}, shots={}, redirect_uri="")
 assert [o.tag for o in g.observed] == ["tested", "sourced"]
+
+# a sourced number must appear on the page the agent read
+d = draft(approval=[Claim(text="Capped at 100 users", tag="sourced", source_url="https://docs.x.com/caps"),
+                    Claim(text="Up to 5,000 requests", tag="sourced", source_url="https://docs.x.com/limits")])
+gate(d, seen={"https://docs.x.com/caps": "unverified apps have a user cap", "https://docs.x.com/limits": "OAuth app | 5,000 | hour"},
+     browsed=set(), shots={}, redirect_uri="")
+assert [a.tag for a in d.approval] == ["uncertain", "sourced"]
 
 # markdown version of a guide renders all ten sections
 from app.main import T

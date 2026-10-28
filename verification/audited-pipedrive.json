@@ -1,0 +1,455 @@
+{
+ "difficulty": "medium",
+ "difficulty_why": "Building an app requires creating a separate developer sandbox account; private apps can be installed immediately via direct link without review, but public marketplace listing requires an extensive review process taking up to 21 business days.",
+ "dev_time": {
+  "label": "15-30 min",
+  "text": "Registering a developer sandbox account, opening Developer Hub, registering an app, configuring scopes, and obtaining OAuth credentials for testing.",
+  "tag": "sourced",
+  "source_url": "https://pipedrive.readme.io/docs/marketplace-registering-a-private-app",
+  "checked_at": "2026-10-28"
+ },
+ "launch_time": {
+  "label": "Same day to 4 weeks",
+  "text": "Private apps can be shared with customers immediately once marked live (same day); public apps submitted for Marketplace listing can take up to 21 business days for review.",
+  "tag": "sourced",
+  "source_url": "https://pipedrive.readme.io/docs/marketplace-app-approval-process",
+  "checked_at": "2026-10-28"
+ },
+ "flags": [
+  "Developer account",
+  "Marketplace review"
+ ],
+ "own_app_reasons": [
+  {
+   "label": "Branded consent screen",
+   "text": "Users see your product name and logo instead of a third-party app during OAuth authorization.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-registering-a-private-app",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Independent rate limits",
+   "text": "Own OAuth client credentials avoid sharing burst and daily token limits with other integrations.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/core-api-concepts-rate-limiting",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Custom scope selection",
+   "text": "Request only the specific entity permissions required by your application features.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-scopes-and-permissions-explanations",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "app_type": {
+  "label": "Private App or Public Marketplace App",
+  "text": "Create a Private App to connect accounts via a direct installation link without Marketplace review, or create a Public App if you plan to publish on the public Pipedrive Marketplace. App type cannot be changed once created.",
+  "tag": "sourced",
+  "source_url": "https://pipedrive.readme.io/docs/marketplace-creating-a-proper-app",
+  "checked_at": "2026-10-28"
+ },
+ "prerequisites": [
+  {
+   "label": "Developer sandbox account",
+   "text": "A free Pipedrive Developer Sandbox account created via the self-serve signup form without requiring a credit card.",
+   "tag": "tested",
+   "source_url": "https://developers.pipedrive.com/",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Admin access in sandbox",
+   "text": "Admin privileges within the sandbox company to access Settings and Developer Hub.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/developer-sandbox-account",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Composio redirect URI",
+   "text": "The exact OAuth callback URL: https://backend.composio.dev/api/v1/auth-apps/add.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-registering-a-private-app",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "steps": [
+  {
+   "label": "Register developer sandbox account",
+   "text": "Go to developers.pipedrive.com and submit the Developer Sandbox account registration form. Confirm your email to activate the account.",
+   "tag": "sourced",
+   "source_url": "https://developers.pipedrive.com/",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://developers.pipedrive.com/",
+   "fields": [
+    {
+     "label": "E-mail",
+     "value": "Your developer email"
+    },
+    {
+     "label": "First Name",
+     "value": "Your first name"
+    }
+   ],
+   "screenshot": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/pipedrive/74d5c68c.png"
+  },
+  {
+   "label": "Navigate to Developer Hub",
+   "text": "Log in to your sandbox account, click your profile icon in the top right, select the sandbox company name, and click Developer Hub.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-registering-a-private-app",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://app.pipedrive.com/settings/developer-hub",
+   "fields": [],
+   "screenshot": ""
+  },
+  {
+   "label": "Create app",
+   "text": "Click Create an app and choose Create private app (or Create public app if submitting for Marketplace listing).",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-registering-a-private-app",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://app.pipedrive.com/settings/developer-hub",
+   "fields": [],
+   "screenshot": ""
+  },
+  {
+   "label": "Configure Basic info",
+   "text": "In the Basic info tab, enter your App name and paste the Composio redirect URI into the Callback URL field, then click Save.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-registering-a-private-app",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://app.pipedrive.com/settings/developer-hub",
+   "fields": [
+    {
+     "label": "App name",
+     "value": "Your App Name"
+    },
+    {
+     "label": "Callback URL",
+     "value": "https://backend.composio.dev/api/v1/auth-apps/add"
+    }
+   ],
+   "screenshot": ""
+  },
+  {
+   "label": "Configure OAuth scopes",
+   "text": "Navigate to the OAuth & access scopes tab and check activities:full, contacts:full, leads:full, mail:full, products:full, and projects:full.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-scopes-and-permissions-explanations",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://app.pipedrive.com/settings/developer-hub",
+   "fields": [
+    {
+     "label": "Access scopes",
+     "value": "Activities: Full access, Contacts: Full access, Leads: Full access, Mail: Full access, Products: Full access, Projects: Full access"
+    }
+   ],
+   "screenshot": ""
+  },
+  {
+   "label": "Retrieve OAuth credentials",
+   "text": "Copy the generated Client ID and Client Secret from the OAuth & access scopes tab to enter into Composio.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-registering-a-private-app",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://app.pipedrive.com/settings/developer-hub",
+   "fields": [
+    {
+     "label": "Client ID",
+     "value": "Generated automatically in Developer Hub"
+    },
+    {
+     "label": "Client Secret",
+     "value": "Generated automatically in Developer Hub"
+    }
+   ],
+   "screenshot": ""
+  },
+  {
+   "label": "Change app status to live",
+   "text": "Click Save, then click the Change to live button to activate the app for external installations via direct link.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-registering-a-private-app",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://app.pipedrive.com/settings/developer-hub",
+   "fields": [],
+   "screenshot": ""
+  }
+ ],
+ "scopes": [
+  {
+   "label": "Activities Full Scope",
+   "text": "activities:full provides full read and write access to Pipedrive activities without requiring restricted scope review.",
+   "tag": "sourced",
+   "source_url": "https://developers.pipedrive.com/changelog/post/new-logic-for-updating-scopes-on-existing-apps",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "Contacts Full Scope",
+   "text": "contacts:full provides full read and write access to persons and organizations without requiring restricted scope review.",
+   "tag": "sourced",
+   "source_url": "https://developers.pipedrive.com/changelog/post/new-logic-for-updating-scopes-on-existing-apps",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "Leads Full Scope",
+   "text": "leads:full provides full read and write access to leads without requiring restricted scope review.",
+   "tag": "sourced",
+   "source_url": "https://developers.pipedrive.com/changelog/post/new-logic-for-updating-scopes-on-existing-apps",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "Mail Full Scope",
+   "text": "mail:full provides full read and write access to mail messages and threads without requiring restricted scope review.",
+   "tag": "sourced",
+   "source_url": "https://developers.pipedrive.com/changelog/post/new-logic-for-updating-scopes-on-existing-apps",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "Products Full Scope",
+   "text": "products:full provides full read and write access to products without requiring restricted scope review.",
+   "tag": "sourced",
+   "source_url": "https://developers.pipedrive.com/changelog/post/new-logic-for-updating-scopes-on-existing-apps",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "Projects Full Scope",
+   "text": "projects:full provides full read and write access to projects and tasks without requiring restricted scope review.",
+   "tag": "sourced",
+   "source_url": "https://developers.pipedrive.com/changelog/post/new-logic-for-updating-scopes-on-existing-apps",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  }
+ ],
+ "approval": [
+  {
+   "label": "When required",
+   "text": "Review is required only for public apps published on the Pipedrive Marketplace; private apps do not require review and can be installed via a direct installation link.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-app-approval-process",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "What's checked",
+   "text": "Pipedrive reviews installation and uninstallation flows, OAuth 2.0 flow compliance, token refresh implementation, minimal scope justification, rate limiting adherence, and listing media.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-app-approval-process",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Wait",
+   "text": "Public app marketplace review may take up to 21 business days depending on queue volume.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-app-approval-process",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Cost",
+   "text": "Pipedrive does not charge any submission or review fee for marketplace apps.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-app-approval-process",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Common rejections",
+   "text": "Common rejections include requesting excessive scopes, using API tokens instead of OAuth 2.0, failing to refresh access tokens before the 60-minute expiry, and broken install flows.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-app-approval-process",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Before approval",
+   "text": "Draft apps can only be installed and tested within your developer sandbox account before being toggled to live or submitted for review.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-registering-a-private-app",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "pitfalls": [
+  {
+   "label": "Sandbox account requirement",
+   "text": "Developer Hub is accessible only inside a Developer Sandbox account, not from standard production accounts.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-registering-a-private-app",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Single callback URL limit",
+   "text": "Pipedrive allows only one callback URL per registered OAuth app.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-registering-a-private-app",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Sandbox inactivity expiration",
+   "text": "Sandbox accounts are deleted if inactive for 45 days without creating an app, or 6 months without publishing an app or making a private app live.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/developer-sandbox-account",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Immutable app type",
+   "text": "App type (public vs private) cannot be changed in Developer Hub once created; switching requires creating a new app.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-creating-a-proper-app",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "All-or-nothing scope consent",
+   "text": "Users cannot grant partial permissions; all requested scopes must be accepted together at installation.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-scopes-and-permissions-explanations",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "60-minute token expiration",
+   "text": "Pipedrive OAuth access tokens expire after 60 minutes and must be refreshed regularly using refresh tokens.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/marketplace-app-approval-process",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "support": [
+  {
+   "label": "Developer support email",
+   "text": "Email marketplace developer support at marketplace.devs@pipedrive.com.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/developer-sandbox-account",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Developer Community",
+   "text": "Ask questions and get help on the official Pipedrive Developers Community forum at devcommunity.pipedrive.com.",
+   "tag": "sourced",
+   "source_url": "https://pipedrive.readme.io/docs/developer-sandbox-account",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Developer Documentation",
+   "text": "Official developer guides and API reference at https://pipedrive.readme.io/docs.",
+   "tag": "uncertain",
+   "source_url": "",
+   "checked_at": ""
+  }
+ ],
+ "email_subject": "OAuth App Review and Distribution Inquiry - [Your Product Name]",
+ "email_body": "Hi Pipedrive Marketplace Team,\n\nWe are developing an AI agent integration ([Your Product Name]) that allows Pipedrive users to connect their accounts via OAuth 2.0 using Composio.\n\nWe plan to request the following OAuth scopes:\n- activities:full\n- contacts:full\n- leads:full\n- mail:full\n- products:full\n- projects:full\n\nOur OAuth redirect URI is:\nhttps://backend.composio.dev/api/v1/auth-apps/add\n\nCould you please confirm:\n1. Whether private apps distributed via direct installation links have any installation count limits or account eligibility restrictions across external customer domains.\n2. If we submit for public Marketplace listing, what the current queue turnaround time is, and whether requesting these full access scopes requires specialized security verification or audit documentation.\n3. Any specific requirements for token refresh handling and rate limiting guidelines we should keep in mind during review.\n\nBest regards,\n[Your Name]\n[Your Company / Product]\n[Your Contact Information]",
+ "slug": "pipedrive",
+ "app_name": "Pipedrive",
+ "website": "https://www.pipedrive.com/",
+ "logo": "https://logos.composio.dev/api/pipedrive",
+ "composio": {
+  "toolkit": "pipedrive",
+  "name": "Pipedrive",
+  "auth_modes": [
+   "OAUTH2",
+   "API_KEY"
+  ],
+  "managed": false,
+  "managed_scopes": [],
+  "redirect_uri": "https://backend.composio.dev/api/v1/auth-apps/add",
+  "default_scopes": [
+   "contacts:full",
+   "leads:full",
+   "mail:full",
+   "activities:full",
+   "products:full",
+   "projects:full"
+  ],
+  "authorize_url": "https://oauth.pipedrive.com/oauth/authorize",
+  "token_url": "https://oauth.pipedrive.com/oauth/token",
+  "app_url": "https://www.pipedrive.com/",
+  "logo": "https://logos.composio.dev/api/pipedrive"
+ },
+ "checks": [
+  {
+   "label": "Composio toolkit",
+   "text": "Composio has a toolkit for Pipedrive (`pipedrive`); Composio-managed OAuth app: no; auth methods: OAUTH2, API_KEY",
+   "tag": "tested",
+   "source_url": "https://docs.composio.dev/toolkits/managed-auth",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Website",
+   "text": "https://www.pipedrive.com/ loads (HTTP 200)",
+   "tag": "tested",
+   "source_url": "https://www.pipedrive.com/",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Authorize URL",
+   "text": "Authorize URL is live and rejects an unregistered client_id, so you need a real registered app",
+   "tag": "tested",
+   "source_url": "https://oauth.pipedrive.com/oauth/authorize",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "observed": [
+  {
+   "label": "Self-serve sandbox signup form",
+   "text": "Developer signup is self-serve via the Sandbox Account form on developers.pipedrive.com, requiring only E-mail, First Name, and agreeing to Terms of Service, Developer Agreement, and Privacy Notice.",
+   "tag": "tested",
+   "source_url": "https://developers.pipedrive.com/",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "No credit card required for signup",
+   "text": "The sandbox registration form does not ask for credit card information or payment details.",
+   "tag": "tested",
+   "source_url": "https://developers.pipedrive.com/",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Public developer portal navigation",
+   "text": "The developer landing page provides direct navigation to Docs & guides, Changelog, Community, API clients, and the sandbox signup.",
+   "tag": "tested",
+   "source_url": "https://developers.pipedrive.com/",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "links": {
+  "https://developers.pipedrive.com/": 200,
+  "https://app.pipedrive.com/settings/developer-hub": 401,
+  "https://pipedrive.readme.io/docs/marketplace-registering-a-private-app": 200,
+  "https://pipedrive.readme.io/docs/core-api-concepts-rate-limiting": 200,
+  "https://pipedrive.readme.io/docs/marketplace-app-approval-process": 200,
+  "https://pipedrive.readme.io/docs/developer-sandbox-account": 200,
+  "https://pipedrive.readme.io/docs/marketplace-creating-a-proper-app": 200,
+  "https://pipedrive.readme.io/docs/marketplace-scopes-and-permissions-explanations": 200,
+  "https://developers.pipedrive.com/changelog/post/new-logic-for-updating-scopes-on-existing-apps": 200
+ },
+ "screenshots": [
+  {
+   "label": "https://developers.pipedrive.com/",
+   "value": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/pipedrive/655dcae5.png"
+  },
+  {
+   "label": "https://developers.pipedrive.com/",
+   "value": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/pipedrive/74d5c68c.png"
+  },
+  {
+   "label": "https://pipedrive.readme.io/docs/developer-sandbox-account",
+   "value": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/pipedrive/009f1b02.png"
+  },
+  {
+   "label": "https://developers.pipedrive.com/",
+   "value": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/pipedrive/22980194.png"
+  }
+ ],
+ "generated_at": "2026-10-28T13:43:55+00:00",
+ "model": "gemini-3.8-flash",
+ "seconds": 223,
+ "trace_url": "https://smith.langchain.com/public/3a855c56-7ad5-48f5-b627-b9285ca0b654/r"
+}

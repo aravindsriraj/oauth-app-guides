@@ -1,0 +1,869 @@
+{
+ "difficulty": "medium",
+ "difficulty_why": "Slack allows instant multi-tenant OAuth installation via unlisted Public Distribution without review, but commercial distribution requires Slack Marketplace listing review which takes up to 10 weeks and enforces strict rate limits on unlisted apps.",
+ "dev_time": {
+  "label": "15-30 min",
+  "text": "Time to create a Slack app in the developer portal, configure redirect URLs, add OAuth scopes, and retrieve Client ID and Secret for local testing.",
+  "tag": "uncertain",
+  "source_url": "",
+  "checked_at": ""
+ },
+ "launch_time": {
+  "label": "Same day to 10 weeks",
+  "text": "Unlisted apps can be installed immediately by external workspaces once Public Distribution is activated (same day). If commercial distribution requires Slack Marketplace listing, review takes up to 10 business days for preliminary checks plus up to 10 weeks for functional review.",
+  "tag": "sourced",
+  "source_url": "https://docs.slack.dev/slack-marketplace/slack-marketplace-review-guide",
+  "checked_at": "2026-10-28"
+ },
+ "flags": [
+  "Marketplace review",
+  "Rate limit on unlisted apps",
+  "Restricted scopes"
+ ],
+ "own_app_reasons": [
+  {
+   "label": "Custom branding",
+   "text": "Display your own application name, icon, and company branding on the Slack OAuth authorization consent screen.",
+   "tag": "uncertain",
+   "source_url": "",
+   "checked_at": ""
+  },
+  {
+   "label": "Custom OAuth scopes",
+   "text": "Configure specific granular bot or user token scopes tailored to your application's unique features.",
+   "tag": "uncertain",
+   "source_url": "",
+   "checked_at": ""
+  },
+  {
+   "label": "Dedicated API rate limits",
+   "text": "Avoid sharing workspace and method rate limits with other integrations using shared multi-tenant credentials.",
+   "tag": "uncertain",
+   "source_url": "",
+   "checked_at": ""
+  }
+ ],
+ "app_type": {
+  "label": "Slack App with Public Distribution",
+  "text": "A Slack App created from scratch with Public Distribution enabled. Enabling Public Distribution allows multi-tenant OAuth 2.0 authorization across external customer workspaces, either as an unlisted app or listed in the Slack Marketplace.",
+  "tag": "sourced",
+  "source_url": "https://api.slack.com/distribution",
+  "checked_at": "2026-10-28"
+ },
+ "prerequisites": [
+  {
+   "label": "Slack user account",
+   "text": "A standard Slack workspace user account; no separate developer portal account or fee is required.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/quickstart",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Slack development workspace",
+   "text": "A Slack workspace where you have permission to install and test applications.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/distribution",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Workspace admin permissions",
+   "text": "Administrative rights or admin approval in your development workspace to install apps and test OAuth token generation.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/distribution",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "HTTPS redirect URI",
+   "text": "A secure HTTPS redirect endpoint (https://backend.composio.dev/api/v1/auth-apps/add) that supports SSL.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/distribution",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "steps": [
+  {
+   "label": "Create Slack App",
+   "text": "Navigate to the Slack App Management portal, click \"Create New App\", select \"From scratch\", enter an App Name, and select your development workspace.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/apps",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://api.slack.com/apps",
+   "fields": [
+    {
+     "label": "App Name",
+     "value": "Your Application Name"
+    },
+    {
+     "label": "Pick a workspace to develop your app in",
+     "value": "Select your development workspace"
+    }
+   ],
+   "screenshot": ""
+  },
+  {
+   "label": "Configure Redirect URLs",
+   "text": "In the left sidebar under Features, click \"OAuth & Permissions\". Scroll down to \"Redirect URLs\", click \"Add New Redirect URL\", enter the Composio redirect URI, and click \"Save URLs\".",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/authentication/oauth-v2",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://api.slack.com/apps",
+   "fields": [
+    {
+     "label": "Redirect URLs",
+     "value": "https://backend.composio.dev/api/v1/auth-apps/add"
+    }
+   ],
+   "screenshot": ""
+  },
+  {
+   "label": "Add OAuth Scopes",
+   "text": "On the \"OAuth & Permissions\" page, scroll to \"Scopes\". Under \"Bot Token Scopes\" or \"User Token Scopes\", click \"Add an OAuth Scope\" to add the permissions needed for your integration.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/authentication/oauth-v2",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://api.slack.com/apps",
+   "fields": [
+    {
+     "label": "OAuth Scopes",
+     "value": "Add required Bot Token Scopes and User Token Scopes"
+    }
+   ],
+   "screenshot": ""
+  },
+  {
+   "label": "Activate Public Distribution",
+   "text": "In the left sidebar under Settings, click \"Manage Distribution\". Complete all prerequisite checklist items under \"Share Your App with Other Workspaces\", then click \"Activate Public Distribution\".",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/distribution",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://api.slack.com/apps",
+   "fields": [],
+   "screenshot": ""
+  },
+  {
+   "label": "Copy App Credentials",
+   "text": "In the left sidebar under Settings, click \"Basic Information\". Scroll to \"App Credentials\" and copy your Client ID and Client Secret to configure your integration in Composio.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/authentication/oauth-v2",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://api.slack.com/apps",
+   "fields": [
+    {
+     "label": "Client ID",
+     "value": "Copy from App Credentials"
+    },
+    {
+     "label": "Client Secret",
+     "value": "Copy from App Credentials"
+    }
+   ],
+   "screenshot": ""
+  }
+ ],
+ "scopes": [
+  {
+   "label": "search:read scope",
+   "text": "Legacy restricted scope that causes Slack Marketplace rejection; granular search scopes should be used instead.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/slack-marketplace/distributing-your-app-in-the-slack-marketplace",
+   "checked_at": "2026-10-28",
+   "review": "restricted"
+  },
+  {
+   "label": "calls:read scope",
+   "text": "View information about calls in the workspace.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "calls:write scope",
+   "text": "Start and manage calls in the workspace.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "channels:history scope",
+   "text": "View messages and other content in public channels that the app has been added to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "channels:read scope",
+   "text": "View basic information about public channels in a workspace.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "channels:write scope",
+   "text": "Manage public channels that the app has been added to and create new ones.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "chat:write scope",
+   "text": "Post messages at the app's discretion in conversations it belongs to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "dnd:read scope",
+   "text": "View Do Not Disturb settings for people in the workspace.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "dnd:write scope",
+   "text": "Edit Do Not Disturb settings on behalf of users.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "emoji:read scope",
+   "text": "View custom emoji in a workspace.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "files:read scope",
+   "text": "View files shared in channels and conversations whose history the app can access.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "files:write scope",
+   "text": "Upload, edit, and delete files on your behalf.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "groups:history scope",
+   "text": "View messages and other content in private channels that the app has been added to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "groups:read scope",
+   "text": "View basic information about private channels that the app has been added to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "groups:write scope",
+   "text": "Manage private channels that the app has been added to and create new ones.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "im:history scope",
+   "text": "View messages and other content in direct messages that the app has been added to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "im:read scope",
+   "text": "View basic information about direct messages that the app has been added to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "im:write scope",
+   "text": "Start direct messages with people and post in them.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "links:read scope",
+   "text": "View link previews for links shared in channels the app has access to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "links:write scope",
+   "text": "Add previews to links shared in channels the app has access to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "lists:read scope",
+   "text": "View lists that the app has been added to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "lists:write scope",
+   "text": "Create and edit lists that the app has access to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "mpim:history scope",
+   "text": "View messages and other content in group direct messages that the app has been added to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "mpim:read scope",
+   "text": "View basic information about group direct messages that the app has been added to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "mpim:write scope",
+   "text": "Start group direct messages with people and post in them.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "pins:read scope",
+   "text": "View pinned items in channels the app has access to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "pins:write scope",
+   "text": "Add and remove pinned items in channels the app has access to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "reactions:read scope",
+   "text": "View emoji reactions and their associated messages in channels the app has access to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "reactions:write scope",
+   "text": "Add and remove emoji reactions on messages.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "reminders:read scope",
+   "text": "View reminders created by the user or for the user.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "reminders:write scope",
+   "text": "Create, edit, and delete reminders on behalf of the user.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "remote_files:read scope",
+   "text": "View remote files added by the app.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "remote_files:share scope",
+   "text": "Share remote files into conversations on behalf of the user.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "search:read.files scope",
+   "text": "Search files across public and private channels the user has access to.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "search:read.im scope",
+   "text": "Search messages across direct messages the user is part of.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "search:read.mpim scope",
+   "text": "Search messages across group direct messages the user is part of.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "search:read.private scope",
+   "text": "Search messages across private channels the user has joined.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "search:read.public scope",
+   "text": "Search messages across all public channels in the workspace.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "search:read.users scope",
+   "text": "Search people and user profiles in the workspace.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "team:read scope",
+   "text": "View the name, email domain, and icon of any workspace the app is installed in.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "usergroups:read scope",
+   "text": "View user groups in the workspace.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "usergroups:write scope",
+   "text": "Create and edit user groups in the workspace.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "users.profile:read scope",
+   "text": "View profile information about users in the workspace.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "users.profile:write scope",
+   "text": "Edit the current user's profile information.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "users:read scope",
+   "text": "View people in the workspace.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "users:read.email scope",
+   "text": "View email addresses of people in the workspace.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "users:write scope",
+   "text": "Set active status and edit user details on behalf of the user.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  }
+ ],
+ "approval": [
+  {
+   "label": "When required",
+   "text": "Marketplace app review is not required to distribute an app across workspaces via OAuth2 install links; developers can share an unlisted app with other workspaces by toggling Activate Public Distribution under Manage Distribution.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/app-management/distribution",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "When required",
+   "text": "Under the Slack API Terms of Service, Slack Marketplace review and listing is required for commercially distributed apps, whereas unlisted distribution is intended only for development, testing, and early customer pilots.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/changelog/2025-05-terms-rate-limit-update-and-faq",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "What's checked",
+   "text": "Slack Marketplace review includes preliminary checks of listing documentation, scopes, and test credentials, followed by a manual functional review assessing OAuth installation, full user flow, security, and scope necessity.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/slack-marketplace/slack-marketplace-review-guide",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Wait",
+   "text": "Preliminary review takes up to 10 business days, and the functional review takes up to 10 weeks for new app submissions (or 6 weeks for updates to published apps).",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/slack-marketplace/slack-marketplace-review-guide",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Cost",
+   "text": "Slack does not charge any fee for Slack Marketplace submission or listing.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/changelog/2025-05-terms-rate-limit-update-and-faq",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Before approval",
+   "text": "Before submitting for Marketplace review, apps must be installed on at least 10 active workspaces (active in the past 28 days) and have at least 10 weekly active users.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/slack-marketplace/slack-marketplace-review-guide",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "pitfalls": [
+  {
+   "label": "Rate limit cliff for unlisted commercial apps",
+   "text": "Unlisted commercially distributed apps face severe API throttling on conversations.history and conversations.replies (1 req/min and max 15 objects), breaking message ingestion unless listed in the Marketplace.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/changelog/2025-05-terms-rate-limit-update-and-faq",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Restricted search:read scope blocks Marketplace approval",
+   "text": "The search:read scope is classified as a legacy and restricted permission; including it will cause Marketplace listing rejection, requiring migration to granular search scopes.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/slack-marketplace/distributing-your-app-in-the-slack-marketplace",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "10 active workspace prerequisite blocks early listing",
+   "text": "Apps cannot submit to the Slack Marketplace without first acquiring 10 active workspaces over the last 28 days and 10 weekly active users via unlisted distribution.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/slack-marketplace/slack-marketplace-review-guide",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Redirect URI mismatch",
+   "text": "If multiple Redirect URLs are configured, the exact redirect_uri parameter must be sent in both the authorize and access token requests, otherwise Slack returns a bad_redirect_uri error.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/authentication/oauth-v2",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Reinstallation required after scope changes",
+   "text": "Modifying scopes does not update existing access tokens; connected workspaces must reinstall or re-authorize the app for scope additions or removals to take effect.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/distribution",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Configuration lock on published apps",
+   "text": "Once listed in the Marketplace, the live app configuration is locked; modifying scopes or redirect URIs requires re-review (up to 6 weeks) and can break user installation if unapproved scopes are requested.",
+   "tag": "sourced",
+   "source_url": "https://docs.slack.dev/slack-marketplace/slack-marketplace-review-guide",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "support": [
+  {
+   "label": "Slack Platform Support",
+   "text": "Official direct support form for platform and API questions at https://api.slack.com/support.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/support",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Slack API GitHub Organization",
+   "text": "Developer SDK and tooling repositories tracked by the Developer Relations team on GitHub.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/support",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Slack Community Workspace",
+   "text": "Global developer community workspace and local chapters for peer questions and developer events.",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/support",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "StackOverflow",
+   "text": "Technical Q&A on StackOverflow tagged [slack-api].",
+   "tag": "sourced",
+   "source_url": "https://api.slack.com/support",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "email_subject": "Slack OAuth App Distribution and Marketplace Review Inquiry - [App Name]",
+ "email_body": "Hi Slack Platform Support Team,\n\nI am developing an AI agent product that integrates with Slack via OAuth 2.0 to help our users automate workflows and manage conversations. Our integration connects to user workspaces using Composio.\n\nHere are our integration details:\n- App Name: [App Name]\n- App ID: [Your App ID]\n- Redirect URI: https://backend.composio.dev/api/v1/auth-apps/add\n- Scopes requested: chat:write, channels:read, channels:history, files:read, users:read, search:read.public, search:read.private, etc.\n\nWe would like to clarify a few points regarding distribution:\n1. We are currently using Public Distribution as an unlisted app for onboarding our initial pilot customers. Could you confirm any specific constraints or rate limits applied to unlisted apps prior to Marketplace listing?\n2. We plan to submit the app to the Slack Marketplace once we reach the 10 active workspaces threshold. Are there any specific recommendations or scope justification requirements for conversational and search scopes?\n3. What is the current turnaround time for preliminary review and functional review?\n\nThank you for your guidance,\n[Your Name]\n[Your Company / Product]\n[Your Contact Information]",
+ "slug": "slack",
+ "app_name": "Slack",
+ "website": "https://slack.com/intl/en-in//",
+ "logo": "https://logos.composio.dev/api/slack",
+ "composio": {
+  "toolkit": "slack",
+  "name": "Slack",
+  "auth_modes": [
+   "OAUTH2"
+  ],
+  "managed": true,
+  "managed_scopes": [
+   "calls:read",
+   "calls:write",
+   "channels:history",
+   "channels:read",
+   "channels:write",
+   "chat:write",
+   "dnd:read",
+   "dnd:write",
+   "emoji:read",
+   "files:read",
+   "files:write",
+   "groups:history",
+   "groups:read",
+   "groups:write",
+   "im:history",
+   "im:read",
+   "im:write",
+   "links:read",
+   "links:write",
+   "mpim:history",
+   "mpim:read",
+   "mpim:write",
+   "pins:read",
+   "pins:write",
+   "reactions:read",
+   "reactions:write",
+   "reminders:read",
+   "reminders:write",
+   "remote_files:read",
+   "remote_files:share",
+   "search:read",
+   "search:read.files",
+   "search:read.im",
+   "search:read.mpim",
+   "search:read.private",
+   "search:read.public",
+   "search:read.users",
+   "team:read",
+   "usergroups:read",
+   "usergroups:write",
+   "users.profile:read",
+   "users.profile:write",
+   "users:read",
+   "users:read.email",
+   "users:write",
+   "lists:read",
+   "lists:write"
+  ],
+  "redirect_uri": "https://backend.composio.dev/api/v1/auth-apps/add",
+  "default_scopes": [
+   "calls:read",
+   "calls:write",
+   "channels:history",
+   "channels:read",
+   "channels:write",
+   "chat:write",
+   "dnd:read",
+   "dnd:write",
+   "emoji:read",
+   "files:read",
+   "files:write",
+   "groups:history",
+   "groups:read",
+   "groups:write",
+   "im:history",
+   "im:read",
+   "im:write",
+   "links:read",
+   "links:write",
+   "lists:read",
+   "lists:write",
+   "mpim:history",
+   "mpim:read",
+   "mpim:write",
+   "pins:read",
+   "pins:write",
+   "reactions:read",
+   "reactions:write",
+   "reminders:read",
+   "reminders:write",
+   "remote_files:read",
+   "remote_files:share",
+   "search:read",
+   "search:read.files",
+   "search:read.im",
+   "search:read.mpim",
+   "search:read.private",
+   "search:read.public",
+   "search:read.users",
+   "team:read",
+   "usergroups:read",
+   "usergroups:write",
+   "users.profile:read",
+   "users.profile:write",
+   "users:read",
+   "users:read.email",
+   "users:write"
+  ],
+  "authorize_url": "https://slack.com/oauth/v2/authorize",
+  "token_url": "https://slack.com/api/oauth.v2.access",
+  "app_url": "https://slack.com/intl/en-in//",
+  "logo": "https://logos.composio.dev/api/slack"
+ },
+ "checks": [
+  {
+   "label": "Composio toolkit",
+   "text": "Composio has a toolkit for Slack (`slack`); Composio-managed OAuth app: yes; auth methods: OAUTH2",
+   "tag": "tested",
+   "source_url": "https://docs.composio.dev/toolkits/managed-auth",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Website",
+   "text": "https://slack.com/intl/en-in// loads (HTTP 200)",
+   "tag": "tested",
+   "source_url": "https://slack.com/intl/en-in//",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Authorize URL",
+   "text": "Authorize URL is live (it renders a page; we couldn't confirm how it treats unknown apps)",
+   "tag": "tested",
+   "source_url": "https://slack.com/oauth/v2/authorize",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "observed": [
+  {
+   "label": "Login wall on app management",
+   "text": "Navigating to https://api.slack.com/apps redirects unauthenticated users to a sign-in wall asking them to sign in to their Slack account.",
+   "tag": "tested",
+   "source_url": "https://api.slack.com/apps",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Manage apps navigation",
+   "text": "The developer documentation header includes a 'MANAGE APPS' button linking directly to the app management portal.",
+   "tag": "tested",
+   "source_url": "https://docs.slack.dev/",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Self-serve developer program",
+   "text": "The Slack Developer Program page provides self-serve 'JOIN THE PROGRAM' and 'SIGN IN' buttons without requiring sales outreach.",
+   "tag": "tested",
+   "source_url": "https://api.slack.com/developer-program",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Newsletter form",
+   "text": "The developer portal includes a self-serve developer newsletter signup form requesting only name and email address.",
+   "tag": "tested",
+   "source_url": "https://api.slack.com/developer-program",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "links": {
+  "https://docs.slack.dev/quickstart": 200,
+  "https://docs.slack.dev/slack-marketplace/distributing-your-app-in-the-slack-marketplace": 200,
+  "https://docs.slack.dev/app-management/distribution": 200,
+  "https://api.slack.com/distribution": 200,
+  "https://docs.slack.dev/slack-marketplace/slack-marketplace-review-guide": 200,
+  "https://api.slack.com/developer-program": 200,
+  "https://api.slack.com/changelog/2025-05-terms-rate-limit-update-and-faq": 200,
+  "https://api.slack.com/authentication/oauth-v2": 200,
+  "https://api.slack.com/apps": 200,
+  "https://api.slack.com/support": 200,
+  "https://docs.slack.dev/": 200
+ },
+ "screenshots": [
+  {
+   "label": "https://docs.slack.dev/",
+   "value": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/slack/3c66164c.png"
+  },
+  {
+   "label": "https://docs.slack.dev/quickstart",
+   "value": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/slack/75f56787.png"
+  },
+  {
+   "label": "https://api.slack.com/developer-program",
+   "value": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/slack/85b4dc13.png"
+  },
+  {
+   "label": "https://api.slack.com/developer-program",
+   "value": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/slack/8baf8d00.png"
+  }
+ ],
+ "generated_at": "2026-10-28T13:39:35+00:00",
+ "model": "gemini-3.8-flash",
+ "seconds": 270,
+ "trace_url": "https://smith.langchain.com/public/2deae973-9127-4e89-98a7-1d5ba4dee2d4/r"
+}

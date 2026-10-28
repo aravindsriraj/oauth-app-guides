@@ -221,10 +221,19 @@ def claims(d: GuideDraft):
         yield from group
 
 
-def gate(d: GuideDraft, seen: set[str], browsed: set[str], shots: dict[str, str], redirect_uri: str) -> int:
+NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
+
+
+def numbers_on_page(c: Claim, page: str) -> bool:
+    page = page.replace(",", "")
+    return all(x.replace(",", "") in page for x in NUMBER.findall(f"{c.label} {c.text}"))
+
+
+def gate(d: GuideDraft, seen: dict[str, str], browsed: set[str], shots: dict[str, str], redirect_uri: str) -> int:
     """Enforce the evidence rules in place; returns how many claims were downgraded.
+    seen maps each url the agents read this run to the text they saw there;
     shots maps each screenshot we uploaded this run to the page it shows."""
-    seen, browsed = {norm(u) for u in seen}, {norm(u) for u in browsed}
+    seen, browsed = {norm(u): t for u, t in seen.items()}, {norm(u) for u in browsed}
     steps = {id(s) for s in d.steps}
     n = 0
     for c in claims(d):
@@ -237,6 +246,9 @@ def gate(d: GuideDraft, seen: set[str], browsed: set[str], shots: dict[str, str]
             c.tag = "sourced"
         if c.tag == "sourced" and (not u or (u not in seen and u not in browsed)):
             c.tag, c.source_url = "uncertain", ""
+        # a sourced number must appear on the page the agent read, or it was made up or misattributed
+        if c.tag == "sourced" and not numbers_on_page(c, seen.get(u, "")):
+            c.tag = "uncertain"
         n += c.tag != before
     for s in d.steps:
         if not s.url.startswith(("http://", "https://")):

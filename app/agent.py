@@ -2,7 +2,6 @@
 import asyncio
 import json
 import os
-import re
 import time
 from dataclasses import dataclass, field
 from typing import Callable
@@ -20,7 +19,6 @@ from app.guide import BROKEN, ApprovalFindings, Claim, GuideDraft, PortalFinding
 ORCH_MODEL = os.environ.get("ORCH_MODEL", "gemini-3.8-flash")
 SUB_MODEL = os.environ.get("SUB_MODEL", "gemini-3.8-flash")
 PAGE_CHARS = 12000
-URL_RE = re.compile(r"https?://[^\s\"'<>)\]]+")
 
 
 @dataclass
@@ -32,7 +30,7 @@ class Ctx:
     checks: list[Claim]
     emit: Callable[[dict], None]
     upload: Callable[[str], str]          # remote screenshot url -> our public url
-    seen: set[str] = field(default_factory=set)      # urls that appeared in tool results
+    seen: dict[str, str] = field(default_factory=dict)  # url read or returned by search -> text seen there
     browsed: set[str] = field(default_factory=set)   # urls the browser actually opened
     shots: dict[str, str] = field(default_factory=dict)  # our screenshot url -> page it shows
 
@@ -66,7 +64,9 @@ def _tools(ctx: Ctx, session, who: str):
             return f"search failed: {e}"
         results = [{"url": c.get("url", ""), "title": c.get("title", ""), "snippet": (c.get("snippet") or "")[:300]}
                    for c in d.get("citations") or []]
-        ctx.seen.update(r["url"] for r in results if r["url"])
+        for r in results:
+            if r["url"]:
+                ctx.seen[r["url"]] = ctx.seen.get(r["url"], "") + " " + r["snippet"]
         return json.dumps({"summary": (d.get("answer") or "")[:1500], "results": results})
 
     @tool
@@ -83,8 +83,7 @@ def _tools(ctx: Ctx, session, who: str):
             return f"could not read {url}: {e}"
         if not text.strip():
             return f"{url} returned no readable text"
-        ctx.seen.add(url)
-        ctx.seen.update(URL_RE.findall(text[:PAGE_CHARS]))
+        ctx.seen[url] = text[:PAGE_CHARS]
         return f"URL: {url}\n\n{text[:PAGE_CHARS]}"
 
     @tool
@@ -201,7 +200,7 @@ Assembly rules:
 - difficulty rates the path until any customer can connect. easy = only a normal account, no review anywhere on that path. medium = any one of: a separate developer or partner account, review for any needed scope, review or listing needed for broad distribution, install or user caps or reduced limits until reviewed. hard = a mandatory security assessment, a paid program, or weeks of required review. difficulty_why: one or two sentences.
 - dev_time: time until the developer has a working app for their own testing. launch_time: time until any customer can connect, including review waits. Put a short range in each label (e.g. "15-30 min", "Same day", "4-8 weeks") and the explanation in text; unsourced numbers are "uncertain".
 - flags: 0-4 short warnings (e.g. "Security assessment", "Developer account", "Marketplace review", "Paid plan").
-- own_app_reasons: only reasons that apply to {ctx.name}: their own name on the consent screen, scopes beyond Composio's defaults, own rate limits, faster triggers, custom or regional instances.
+- own_app_reasons: only reasons that apply to {ctx.name}: their own name on the consent screen (say so if {ctx.name} shows it only after verification), scopes beyond Composio's defaults, faster triggers, custom or regional instances. Own rate limits count only if {ctx.name}'s limits are per app or project; not if they are per user, token or customer account.
 - steps: from the setup findings. Attach a portal-explorer screenshot only to a step whose url is the page that screenshot shows. Use the ground-truth redirect URI. Do not add Composio steps; the page adds them.
 - email_subject / email_body: a ready-to-send email to {ctx.name}'s developer support asking about OAuth app requirements, review and timelines for this use case, with [placeholders] for the sender's details.
 - If {ctx.name} does not offer OAuth for third-party apps, say so in difficulty_why and app_type and describe the alternative.""" + RULES

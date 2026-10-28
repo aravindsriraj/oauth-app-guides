@@ -1,0 +1,437 @@
+{
+ "difficulty": "easy",
+ "difficulty_why": "Linear allows any workspace admin to create a public OAuth application for free without review or approval, and users from any workspace can authorize it immediately.",
+ "dev_time": {
+  "label": "15-30 min",
+  "text": "Registering an OAuth app in Linear's workspace settings, configuring the redirect URI, and obtaining client credentials takes about 15 to 30 minutes.",
+  "tag": "uncertain",
+  "source_url": "",
+  "checked_at": ""
+ },
+ "launch_time": {
+  "label": "Same day",
+  "text": "Public distribution takes effect immediately upon creation, allowing any external Linear customer to authorize the integration without review delays.",
+  "tag": "sourced",
+  "source_url": "https://linear.app/developers/integration-directory",
+  "checked_at": "2026-10-28"
+ },
+ "flags": [],
+ "own_app_reasons": [
+  {
+   "label": "Custom branding",
+   "text": "Displays your application's custom name, developer name, and logo on the Linear OAuth consent screen instead of Composio.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Dedicated rate limits",
+   "text": "Provides dedicated API rate limits (5,000 requests and 2,000,000 complexity points per hour) independent of shared integration pools.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/rate-limiting",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Webhook management",
+   "text": "Enables configuring custom webhook endpoints to receive real-time updates for issue and comment events directly.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-app-manifests",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "app_type": {
+  "label": "Public OAuth Application",
+  "text": "Create a Public OAuth application with distribution set to 'Public'. This allows users from any external Linear workspace to authorize and connect their accounts, whereas private applications are restricted to the developer's own workspace.",
+  "tag": "sourced",
+  "source_url": "https://linear.app/developers/oauth-app-manifests",
+  "checked_at": "2026-10-28"
+ },
+ "prerequisites": [
+  {
+   "label": "Workspace admin role",
+   "text": "You must have the Admin role in your Linear workspace to access Settings > Administration > API and create OAuth applications.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/docs/api-and-webhooks",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Standard Linear account",
+   "text": "No paid subscription tier or special developer account is required; any workspace admin on a standard or free account can create applications.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/docs/api-and-webhooks",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Dedicated workspace recommendation",
+   "text": "Linear recommends creating a separate, dedicated workspace to manage the OAuth application so other workspace admins do not have access to production credentials.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "steps": [
+  {
+   "label": "Navigate to API settings",
+   "text": "Log in to Linear and navigate to Settings > Administration > API.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/docs/api-and-webhooks",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://linear.app/settings/api",
+   "fields": [],
+   "screenshot": ""
+  },
+  {
+   "label": "Open application creation form",
+   "text": "Under the OAuth Applications section, click 'Create application'.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-app-manifests",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://linear.app/settings/api/applications/new",
+   "fields": [],
+   "screenshot": ""
+  },
+  {
+   "label": "Configure application details",
+   "text": "Set the distribution to Public, enter the application and developer details, and add the Composio redirect URI.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-app-manifests",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://linear.app/settings/api/applications/new",
+   "fields": [
+    {
+     "label": "Distribution",
+     "value": "Public (allows users from other Linear workspaces to authorize)"
+    },
+    {
+     "label": "Name",
+     "value": "Your App Name (cannot include 'Linear' or 'http://')"
+    },
+    {
+     "label": "Developer",
+     "value": "Your company or developer name"
+    },
+    {
+     "label": "Application URL",
+     "value": "https://your-domain.com"
+    },
+    {
+     "label": "Redirect URIs",
+     "value": "https://backend.composio.dev/api/v1/auth-apps/add"
+    }
+   ],
+   "screenshot": ""
+  },
+  {
+   "label": "Create application and copy credentials",
+   "text": "Click 'Create' to register the application, then copy the generated Client ID and Client Secret.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28",
+   "actor": "you",
+   "url": "https://linear.app/settings/api",
+   "fields": [],
+   "screenshot": ""
+  },
+  {
+   "label": "Authorize users",
+   "text": "Direct users to Linear's OAuth authorization URL with the required scopes and redirect URI.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28",
+   "actor": "agent",
+   "url": "https://linear.app/oauth/authorize",
+   "fields": [
+    {
+     "label": "client_id",
+     "value": "<YOUR_CLIENT_ID>"
+    },
+    {
+     "label": "redirect_uri",
+     "value": "https://backend.composio.dev/api/v1/auth-apps/add"
+    },
+    {
+     "label": "response_type",
+     "value": "code"
+    },
+    {
+     "label": "scope",
+     "value": "read,write,issues:create,comments:create"
+    },
+    {
+     "label": "actor",
+     "value": "user"
+    }
+   ],
+   "screenshot": ""
+  }
+ ],
+ "scopes": [
+  {
+   "label": "read",
+   "text": "Default scope granting read access to the user's account without triggering review.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "write",
+   "text": "Grants broad write access to create and modify workspace data without triggering review.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "issues:create",
+   "text": "Allows creating and updating issues and attachments without triggering review.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "comments:create",
+   "text": "Allows creating new issue comments without triggering review.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "admin",
+   "text": "Grants administrative workspace access without triggering review, but disallowed for actor=app requests.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  },
+  {
+   "label": "timeSchedule:write",
+   "text": "Allows creating and modifying time schedules without triggering review.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28",
+   "review": "none"
+  }
+ ],
+ "approval": [
+  {
+   "label": "When required",
+   "text": "OAuth app review and directory approval are only required if you want your app listed in Linear's public Integration Directory; unreviewed OAuth apps can be authorized and used immediately by external workspaces.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/integration-directory",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "What's checked",
+   "text": "Linear reviews whether integrations are built by formal companies, useful to the community, and supplied with designated color/monochrome icons and showcase graphics.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/integration-directory",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Wait",
+   "text": "Linear does not publish an official review turnaround time or SLA for Integration Directory submissions.",
+   "tag": "uncertain",
+   "source_url": "",
+   "checked_at": ""
+  },
+  {
+   "label": "Cost",
+   "text": "Creating OAuth apps and submitting to the Integration Directory is free with no developer listing fees or paid plan paywalls documented.",
+   "tag": "uncertain",
+   "source_url": "",
+   "checked_at": ""
+  },
+  {
+   "label": "Common rejections",
+   "text": "Linear explicitly rejects scripts, low-effort or 'vibe coded' apps, and tools built by hobbyists rather than formal companies.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/integration-directory",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Before approval",
+   "text": "Unlisted and unreviewed apps have no install caps or test user caps and receive the standard OAuth rate limit of 5,000 requests and 2,000,000 complexity points per hour.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/rate-limiting",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "pitfalls": [
+  {
+   "label": "App name restrictions",
+   "text": "The application name must be between 2 and 80 characters and cannot contain the word 'Linear' or protocol strings like 'http://' or 'https://'.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-app-manifests",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Workspace admin role required",
+   "text": "Only workspace Admins can access Settings > Administration > API to create, view, or manage OAuth applications. Non-admin members cannot access this section.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/docs/api-and-webhooks",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Admin exposure in shared workspaces",
+   "text": "All workspace admins have access to view, edit, and rotate OAuth application secrets. Linear recommends using a dedicated workspace to manage the OAuth app.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Token expiration handling",
+   "text": "Linear access tokens expire in 24 hours (86,399 seconds), requiring a refresh flow at https://api.linear.app/oauth/token. Refresh tokens have a 30-minute replay grace period.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Admin scope restriction for apps",
+   "text": "The admin scope cannot be requested when using actor=app authorization for bots or agent integrations.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "support": [
+  {
+   "label": "Linear Community Slack",
+   "text": "Post technical questions in the #api channel of Linear's official Slack community.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/docs/api-and-webhooks",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Integrations team email",
+   "text": "Contact integrations@linear.app for questions regarding integration listings and directory submissions.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/integration-directory",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Linear Developer Documentation",
+   "text": "Access official API, OAuth 2.0, and manifest guides at developers.linear.app and linear.app/developers.",
+   "tag": "sourced",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "email_subject": "OAuth app verification and integration directory requirements for [App Name]",
+ "email_body": "Hi Linear Developer Support Team,\n\nI am building [App Name] ([App Website]), an integration that allows teams to connect their Linear accounts to our AI agent platform using OAuth 2.0.\n\nWe have configured a public OAuth application with the redirect URI [Redirect URI] requesting scopes read, write, issues:create, and comments:create.\n\nCould you please confirm:\n1. Beyond toggling the application distribution to Public, are there any approval steps or verification reviews required before external workspaces can authorize and use our integration?\n2. Are there any restrictions or rate limit ceilings applied to unlisted public applications prior to formal listing in the Linear Integration Directory?\n3. What are the current criteria and timeline if we decide to submit [App Name] to the Linear Integration Directory in the future?\n\nThank you for your assistance.\n\nBest regards,\n[Your Name]\n[Your Title]\n[Your Company]",
+ "slug": "linear",
+ "app_name": "Linear",
+ "website": "https://linear.app",
+ "logo": "https://logos.composio.dev/api/linear",
+ "composio": {
+  "toolkit": "linear",
+  "name": "Linear",
+  "auth_modes": [
+   "OAUTH2",
+   "API_KEY"
+  ],
+  "managed": true,
+  "managed_scopes": [
+   "admin",
+   "read",
+   "write",
+   "issues:create",
+   "comments:create"
+  ],
+  "redirect_uri": "https://backend.composio.dev/api/v1/auth-apps/add",
+  "default_scopes": [
+   "read",
+   "write",
+   "issues:create",
+   "comments:create"
+  ],
+  "authorize_url": "https://linear.app/oauth/authorize",
+  "token_url": "https://api.linear.app/oauth/token",
+  "app_url": "https://linear.app",
+  "logo": "https://logos.composio.dev/api/linear"
+ },
+ "checks": [
+  {
+   "label": "Composio toolkit",
+   "text": "Composio has a toolkit for Linear (`linear`); Composio-managed OAuth app: yes; auth methods: OAUTH2, API_KEY",
+   "tag": "tested",
+   "source_url": "https://docs.composio.dev/toolkits/managed-auth",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Website",
+   "text": "https://linear.app loads (HTTP 200)",
+   "tag": "tested",
+   "source_url": "https://linear.app",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Authorize URL",
+   "text": "Authorize URL is live (it renders a page; we couldn't confirm how it treats unknown apps)",
+   "tag": "tested",
+   "source_url": "https://linear.app/oauth/authorize",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "observed": [
+  {
+   "label": "Self-serve signup page",
+   "text": "Signup is self-serve, offering 'Continue with Google', 'Continue with email', and 'Continue with SAML SSO' without requiring a credit card or upfront payment.",
+   "tag": "tested",
+   "source_url": "https://linear.app/signup",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "Application creation access",
+   "text": "Navigating directly to the OAuth application creation page requires authentication.",
+   "tag": "tested",
+   "source_url": "https://linear.app/settings/api/applications/new",
+   "checked_at": "2026-10-28"
+  },
+  {
+   "label": "OAuth documentation access",
+   "text": "Public developer documentation for OAuth 2.0 authentication is accessible without logging in.",
+   "tag": "tested",
+   "source_url": "https://linear.app/developers/oauth-2-0-authentication",
+   "checked_at": "2026-10-28"
+  }
+ ],
+ "links": {
+  "https://linear.app/developers/oauth-2-0-authentication": 200,
+  "https://linear.app/signup": 200,
+  "https://linear.app/oauth/authorize": 200,
+  "https://linear.app/developers/integration-directory": 200,
+  "https://linear.app/docs/api-and-webhooks": 200,
+  "https://linear.app/settings/api": 200,
+  "https://linear.app/developers/oauth-app-manifests": 200,
+  "https://linear.app/developers/rate-limiting": 200,
+  "https://linear.app/settings/api/applications/new": 200
+ },
+ "screenshots": [
+  {
+   "label": "https://linear.app/developers/oauth-2-0-authentication",
+   "value": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/linear/dbab45b5.png"
+  },
+  {
+   "label": "https://linear.app/developers/oauth-2-0-authentication",
+   "value": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/linear/58757a43.png"
+  },
+  {
+   "label": "https://linear.app/",
+   "value": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/linear/ab96adbe.png"
+  },
+  {
+   "label": "https://linear.app/signup",
+   "value": "https://storage.googleapis.com/emerald-rhythm-488616-v7-oauth-guides/shots/linear/bf5cffcb.png"
+  }
+ ],
+ "generated_at": "2026-10-28T13:46:48+00:00",
+ "model": "gemini-3.8-flash",
+ "seconds": 151,
+ "trace_url": "https://smith.langchain.com/public/6329d4d5-aef5-4b03-ad7f-29f1a61c6b3b/r"
+}
