@@ -1,6 +1,6 @@
 # OAuth App Guides
 
-**Live:** https://oauth-guides-968299856642.us-central1.run.app
+**Live:** https://oauth-guides-968299856642.us-central1.run.app · **Source:** https://github.com/aravindsriraj/oauth-app-guides
 
 Look up an app and see what it takes to get an OAuth app ready for your users:
 - how hard it is;
