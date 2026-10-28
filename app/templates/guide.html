@@ -89,6 +89,12 @@ footer.meta { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--l
 <h2 id="before">Before you start</h2>
 {{ claim(g.app_type) }}
 {% for x in g.prerequisites %}{{ claim(x) }}{% endfor %}
+{% if g.observed or g.screenshots %}
+<h3>What our browser saw</h3>
+<p class="muted">Public pages only: the agents never sign up or log in, so screens behind {{ g.app_name }}'s login aren't shown.</p>
+{% for x in g.observed %}{{ claim(x) }}{% endfor %}
+{% if g.screenshots %}<div class="shots">{% for s in g.screenshots %}<figure><img src="{{ s.value }}" alt="Screenshot of {{ s.label }}" loading="lazy"><figcaption>{{ s.label|domain }}{{ s.label.split(s.label|domain, 1)[-1][:60] }}</figcaption></figure>{% endfor %}</div>{% endif %}
+{% endif %}
 
 <h2 id="steps">Create the app</h2>
 <ol class="steps">
@@ -104,12 +110,6 @@ footer.meta { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--l
   </li>
 {% endfor %}
 </ol>
-{% if g.screenshots %}
-<h3>What our browser saw</h3>
-<p class="muted">Public pages only: the agents never sign up or log in, so screens behind {{ g.app_name }}'s login aren't shown.</p>
-<div class="shots">{% for s in g.screenshots %}<figure><img src="{{ s.value }}" alt="Screenshot of {{ s.label }}" loading="lazy"><figcaption>{{ s.label|domain }}{{ s.label.split(s.label|domain, 1)[-1][:60] }}</figcaption></figure>{% endfor %}</div>
-{% endif %}
-
 <h2 id="permissions">Permissions</h2>
 {% if g.scopes %}
 <table class="scopes"><thead><tr><th>Scope</th><th>Review</th><th>What it means</th></tr></thead><tbody>

@@ -114,6 +114,7 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
     run_id = uuid.uuid4()
     config = {"run_id": run_id, "run_name": f"guide: {name}", "recursion_limit": 120}
     task_names: dict[str, str] = {}
+    observed: list[Claim] = []
     draft: GuideDraft | None = None
     line("Orchestrator is briefing three specialists", who="orchestrator")
     try:
@@ -136,7 +137,10 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
                             elif tc["name"] in ("GuideDraft",):
                                 line("Assembling the guide", who="orchestrator")
                         if getattr(m, "type", "") == "tool" and getattr(m, "name", "") == "task":
-                            report_findings(task_names.get(m.tool_call_id, "specialist"), str(m.content), line)
+                            who = task_names.get(m.tool_call_id, "specialist")
+                            data = report_findings(who, str(m.content), line)
+                            if who == "portal explorer":
+                                observed += [Claim(**o) for o in data.get("observations", []) if isinstance(o, dict) and o.get("text")]
     except TimeoutError:
         line("Research ran out of time", "uncertain", who="orchestrator")
     if draft is None:
@@ -145,6 +149,7 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
     if isinstance(draft, dict):
         draft = GuideDraft.model_validate(draft)
 
+    draft = Guide(**draft.model_dump(), slug=slug, app_name=name, observed=observed)
     downgraded = gate(draft, ctx.seen, ctx.browsed, ctx.shots, (facts or {}).get("redirect_uri", ""))
     line(f"Evidence check: {downgraded} claim(s) downgraded because their source wasn't seen this run", who="checks")
     async with httpx.AsyncClient() as client:
@@ -156,7 +161,7 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
     today = f"{datetime.now(timezone.utc):%Y-%m-%d}"
     for c in [*claims(draft), *checks]:
         c.checked_at = today if c.source_url else ""
-    guide = Guide(**draft.model_dump(), slug=slug, app_name=name, website=website, logo=(facts or {}).get("logo", ""),
+    guide = Guide(**draft.model_dump(exclude={"slug", "app_name"}), slug=slug, app_name=name, website=website, logo=(facts or {}).get("logo", ""),
                   composio=facts or {}, checks=checks, links=links,
                   screenshots=[Entry(label=page, value=ours) for ours, page in ctx.shots.items()], generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
                   model=ORCH_MODEL, seconds=int(time.time() - t0), trace_url=await asyncio.to_thread(share_trace, run_id))
@@ -171,7 +176,7 @@ def report_findings(who: str, content: str, line):
         data = json.loads(content[content.find("{"):content.rfind("}") + 1])
     except ValueError:
         line(f"{who} finished (no structured result)", "uncertain", who=who)
-        return
+        return {}
     items = []
     for v in data.values():
         if isinstance(v, dict) and "tag" in v:
@@ -182,6 +187,7 @@ def report_findings(who: str, content: str, line):
         text = (f"{x['label']}: " if x.get("label") else "") + x.get("text", "")[:140]
         line(text, x.get("tag", ""), x.get("source_url", ""), who=who)
     line(f"{who} finished: {len(items)} findings", who=who)
+    return data
 
 
 if __name__ == "__main__":

@@ -127,7 +127,7 @@ Evidence rules (strict):
 - "tested": only what the browser itself experienced this run (a page loaded, a form asked for X, a button or plan gate was there), with source_url = a URL the browse tool listed in "visited". Policy text you merely read on a page is "sourced", not "tested".
 - "uncertain": everything else: inferences, anything from memory, and any number (days, prices, user limits) without a source.
 - Use the provider's own domains (docs, developer portal, help center) first. Use a third-party page only when official docs are silent, and never for numbers. Never invent or guess URLs.
-- One fact per claim, plain words, no marketing language."""
+- One fact per claim, plain words, no marketing language. Keep lists short: at most 8 steps and 6 items per other list, most important first."""
 
 
 def build(ctx: Ctx):
@@ -164,6 +164,7 @@ A step's actor is "agent" only if it needs no login to {ctx.name} (drafting text
 You research what stands between a working {ctx.name} OAuth app and one that any customer can install:
 - for each needed scope: does it trigger review or count as sensitive/restricted? (review: none, review, restricted, unknown);
 - is app review, verification or a marketplace listing required, and when (always, above a user count, only for listing, only for some scopes)? Use approval claims labelled: When required, What's checked, Wait, Cost, Common rejections, Before approval (limits such as test users, token expiry, install caps);
+- limits that apply to apps that are NOT reviewed or listed, even after launch: lower API rate limits, install or user caps, token lifetimes, terms of service restrictions. Check the provider's developer changelog and API terms for recent changes;
 - pitfalls specific to review.""" + RULES + budget,
          "tools": [a_search, a_read], "model": sub_model,
          "response_format": ToolStrategy(ApprovalFindings), "middleware": [ModelCallLimitMiddleware(run_limit=12)]},

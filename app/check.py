@@ -54,8 +54,15 @@ d = draft(pitfalls=[Claim(text="p", tag="sourced", source_url="https://docs.x.co
 assert apply_links(d, {"https://docs.x.com/gone": 404, "https://docs.x.com/blocked": 403}) == 1
 assert [p.tag for p in d.pitfalls] == ["uncertain", "sourced"]
 
-# markdown version of a guide renders all ten sections
+# browser observations on the Guide go through the same gate
 from app.guide import Guide
+g = Guide(**draft().model_dump(), slug="x", app_name="X", observed=[
+    Claim(text="login wall", tag="tested", source_url="https://x.com/signup"),
+    Claim(text="read in docs", tag="tested", source_url="https://docs.x.com/a")])
+gate(g, seen={"https://docs.x.com/a"}, browsed={"https://x.com/signup"}, shots={}, redirect_uri="")
+assert [o.tag for o in g.observed] == ["tested", "sourced"]
+
+# markdown version of a guide renders all ten sections
 from app.main import T
 g = Guide(**draft().model_dump(), slug="x", app_name="X", composio={
     "toolkit": "x", "auth_modes": ["OAUTH2"], "managed": False, "redirect_uri": "https://backend.composio.dev/api/v1/auth-apps/add"})

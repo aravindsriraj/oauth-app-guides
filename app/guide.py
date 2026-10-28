@@ -62,6 +62,7 @@ class Guide(GuideDraft):
     logo: str = ""
     composio: dict = {}
     checks: list[Claim] = []
+    observed: list[Claim] = []     # portal explorer's browser observations, copied in by code
     links: dict[str, int] = {}
     screenshots: list[Entry] = []  # label = page shown, value = our image url
     generated_at: str = ""
@@ -215,7 +216,8 @@ def claims(d: GuideDraft):
     yield d.dev_time
     yield d.launch_time
     yield d.app_type
-    for group in (d.own_app_reasons, d.prerequisites, d.steps, d.scopes, d.approval, d.pitfalls, d.support):
+    for group in (d.own_app_reasons, d.prerequisites, d.steps, d.scopes, d.approval, d.pitfalls, d.support,
+                  getattr(d, "observed", [])):
         yield from group
 
 

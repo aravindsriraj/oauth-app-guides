@@ -27,7 +27,10 @@ Researched by agents on {{ g.generated_at[:10] }}. Tags: tested = seen during re
 
 {{ claim(g.app_type) }}
 {% for x in g.prerequisites %}{{ claim(x) }}
-{% endfor %}
+{% endfor %}{% if g.observed %}
+**What our browser saw (public pages only):**
+{% for x in g.observed %}{{ claim(x) }}
+{% endfor %}{% endif %}
 ## Create the app
 {% for s in g.steps %}
 {{ loop.index }}. **{{ s.label or "Step " ~ loop.index }}** ({{ "agent can do this" if s.actor == "agent" else "you" }}){% if s.url %} {{ s.url }}{% endif %}
