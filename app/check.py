@@ -31,21 +31,18 @@ d = draft(prerequisites=[
     Claim(text="d", tag="sourced", source_url="javascript:alert(1)"),       # bad scheme -> uncertain, url cleared
     Claim(text="e", tag="uncertain"),
 ], steps=[Step(text="s", tag="sourced", source_url="https://docs.x.com/a", actor="you",
-               screenshot="https://evil.com/x.png", fields=[Entry(label="Redirect URL", value="https://wrong")]),
+               fields=[Entry(label="Redirect URL", value="https://wrong")]),
           Step(text="open settings", tag="tested", source_url="https://x.com/signup", actor="you",  # steps happen behind login
-               url="https://x.com/settings/api", screenshot="https://ours/1.png"),                  # shot shows another page
-          Step(text="sign up", tag="sourced", source_url="https://x.com/signup", actor="you",
-               url="https://x.com/signup/", screenshot="https://ours/1.png")])                      # shot shows this page
+               url="https://x.com/settings/api")])
 n = gate(d, seen={"https://docs.x.com/a": "", "https://x.com/signup": ""}, browsed={"https://x.com/signup"},
-         shots={"https://ours/1.png": "https://x.com/signup"}, redirect_uri="https://backend.composio.dev/api/v1/auth-apps/add")
+         redirect_uri="https://backend.composio.dev/api/v1/auth-apps/add")
 tags = [p.tag for p in d.prerequisites]
 assert tags == ["tested", "sourced", "uncertain", "uncertain", "uncertain"], tags
 assert d.prerequisites[2].source_url == "" and d.prerequisites[3].source_url == ""
 assert d.dev_time.tag == "uncertain"          # sourced with no url at all
-assert d.steps[0].tag == "sourced" and d.steps[0].screenshot == ""
+assert d.steps[0].tag == "sourced"
 assert d.steps[0].fields[0].value == "https://backend.composio.dev/api/v1/auth-apps/add"
-assert d.steps[1].tag == "sourced" and d.steps[1].screenshot == ""
-assert d.steps[2].screenshot == "https://ours/1.png"
+assert d.steps[1].tag == "sourced"
 assert n == 7, n                              # b, c, d, dev_time, launch_time, app_type, step 1
 
 # broken source after link check -> uncertain; blocked (403) stays
@@ -59,21 +56,21 @@ from app.guide import Guide
 g = Guide(**draft().model_dump(), slug="x", app_name="X", observed=[
     Claim(text="login wall", tag="tested", source_url="https://x.com/signup"),
     Claim(text="read in docs", tag="tested", source_url="https://docs.x.com/a")])
-gate(g, seen={"https://docs.x.com/a": ""}, browsed={"https://x.com/signup"}, shots={}, redirect_uri="")
+gate(g, seen={"https://docs.x.com/a": ""}, browsed={"https://x.com/signup"}, redirect_uri="")
 assert [o.tag for o in g.observed] == ["tested", "sourced"]
 
 # a sourced number must appear on the page the agent read
 d = draft(approval=[Claim(text="Capped at 100 users", tag="sourced", source_url="https://docs.x.com/caps"),
                     Claim(text="Up to 5,000 requests", tag="sourced", source_url="https://docs.x.com/limits")])
 gate(d, seen={"https://docs.x.com/caps": "unverified apps have a user cap", "https://docs.x.com/limits": "OAuth app | 5,000 | hour"},
-     browsed=set(), shots={}, redirect_uri="")
+     browsed=set(), redirect_uri="")
 assert [a.tag for a in d.approval] == ["uncertain", "sourced"]
 
 # a sourced scope claim needs its scope string on the cited page
 d = draft(scopes=[Scope(label="crm.objects.contacts.read", text="Read contacts", tag="sourced", review="none", source_url="https://h.com/overview"),
                   Scope(label="Gmail full access", text="https://mail.google.com/ is restricted", tag="sourced", review="restricted", source_url="https://g.com/restricted")])
 gate(d, seen={"https://h.com/overview": "Scopes provide access to endpoints", "https://g.com/restricted": "restricted scopes include https://mail.google.com/"},
-     browsed=set(), shots={}, redirect_uri="")
+     browsed=set(), redirect_uri="")
 assert [s.tag for s in d.scopes] == ["uncertain", "sourced"]
 
 # "own app = own rate limits" survives only if the cited page counts limits per app/client/project
@@ -82,7 +79,7 @@ d = draft(own_app_reasons=[
     Claim(text="Quota is counted per project, so you get your own", tag="sourced", source_url="https://g.com/quota"),
     Claim(text="Your own name on the consent screen", tag="sourced", source_url="https://g.com/quota")])
 gate(d, seen={"https://l.app/limits": "OAuth App | 5,000 | User", "https://g.com/quota": "Per minute per project: units"},
-     browsed=set(), shots={}, redirect_uri="")
+     browsed=set(), redirect_uri="")
 assert [c.text[:5] for c in d.own_app_reasons] == ["Quota", "Your "], d.own_app_reasons
 
 # markdown version of a guide renders all ten sections

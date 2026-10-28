@@ -18,7 +18,6 @@ class Claim(BaseModel):
     text: str
     tag: Tag = Field(description="tested = observed by the browser this run; sourced = stated on source_url; uncertain = inferred or unsourced")
     source_url: str = Field("", description="Exact URL fetched or cited this run; empty if none")
-    checked_at: str = ""  # set by code
 
 
 class Entry(BaseModel):
@@ -30,7 +29,6 @@ class Step(Claim):
     actor: Literal["agent", "you"] = Field(description="agent only if it needs no login to the provider")
     url: str = Field("", description="Direct link to the page where this step happens")
     fields: list[Entry] = Field([], description="Form field -> what to enter")
-    screenshot: str = ""
 
 
 class Scope(Claim):
@@ -91,7 +89,6 @@ class ApprovalFindings(BaseModel):
 class PortalFindings(BaseModel):
     observations: list[Claim] = Field(description="What the browser itself saw happen: a form's fields, a login wall, a card field, a plan gate. Tag tested.")
     stated: list[Claim] = Field(description="What the pages say (policies, requirements, docs text). Tag sourced, never tested.")
-    screenshots: list[Entry] = Field(description="label = caption, value = screenshot URL returned by browse")
 
 
 # ---------- input resolution ----------
@@ -121,10 +118,9 @@ def facts(d: dict) -> dict:
     opt = {f["name"]: f.get("default") for f in oauth.get("fields", {}).get("auth_config_creation", {}).get("optional", [])}
     prov = oauth.get("deprecated_auth_provider_details") or {}
     managed = d.get("composio_managed_auth_schemes") or []
-    scopes = next((m.get("scopes", {}).get("available", []) for m in d.get("composio_managed_auth") or [] if m.get("mode") == "OAUTH2"), [])
     return {
         "toolkit": d["slug"], "name": d.get("name", d["slug"]), "auth_modes": modes, "managed": "OAUTH2" in managed,
-        "managed_scopes": scopes, "redirect_uri": opt.get("oauth_redirect_uri") or "",
+        "redirect_uri": opt.get("oauth_redirect_uri") or "",
         "default_scopes": [s for s in (opt.get("scopes") or "").split(",") if s],
         "authorize_url": prov.get("authorization_url", ""), "token_url": prov.get("token_url", ""),
         "app_url": (d.get("meta") or {}).get("app_url", ""), "logo": (d.get("meta") or {}).get("logo", ""),
@@ -183,13 +179,14 @@ PROBE_TEXT = {
 }
 
 
-async def probe_authorize(c: dict, client: httpx.AsyncClient) -> tuple[str, str]:
+async def probe_authorize(c: dict, client: httpx.AsyncClient) -> str:
+    """Call the provider's authorize URL with a made-up client_id and classify the response."""
     params = {"client_id": "composio-guide-probe", "redirect_uri": c["redirect_uri"], "response_type": "code"}
     try:
         r = await client.get(c["authorize_url"], params=params, follow_redirects=True, timeout=10, headers=UA)
-        return classify_probe(r.status_code, str(r.url), r.text), str(r.request.url)
+        return classify_probe(r.status_code, str(r.url), r.text)
     except httpx.HTTPError:
-        return "error", c["authorize_url"]
+        return "error"
 
 
 async def check_links(urls: set[str], client: httpx.AsyncClient) -> dict[str, int]:
@@ -250,10 +247,9 @@ def per_app_limits(c: Claim, page: str) -> bool:
     return bool(unit) and bool(re.search(rf"\bper (?:\w+ )?{unit}\b|\b{unit}[- ]level\b", page, re.I))
 
 
-def gate(d: GuideDraft, seen: dict[str, str], browsed: set[str], shots: dict[str, str], redirect_uri: str) -> int:
+def gate(d: GuideDraft, seen: dict[str, str], browsed: set[str], redirect_uri: str) -> int:
     """Enforce the evidence rules in place; returns how many claims were downgraded.
-    seen maps each url the agents read this run to the text they saw there;
-    shots maps each screenshot we uploaded this run to the page it shows."""
+    seen maps each url the agents read this run to the text they saw there."""
     seen, browsed = {norm(u): t for u, t in seen.items()}, {norm(u) for u in browsed}
     steps = {id(s) for s in d.steps}
     n = 0
@@ -282,8 +278,6 @@ def gate(d: GuideDraft, seen: dict[str, str], browsed: set[str], shots: dict[str
     for s in d.steps:
         if not s.url.startswith(("http://", "https://")):
             s.url = ""
-        if s.screenshot not in shots or not s.url or norm(shots[s.screenshot]) != norm(s.url):
-            s.screenshot = ""  # only keep a screenshot that shows this step's own page
         for f in s.fields:
             if "redirect" in f.label.lower() and redirect_uri:
                 f.value = redirect_uri

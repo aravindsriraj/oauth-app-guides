@@ -107,7 +107,6 @@ footer.meta { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--l
     {{ claim(s, False) }}
     {% if s.fields %}<table class="fields">{% for f in s.fields %}<tr><td>{{ f.label }}</td>
       <td>{% if f.value.startswith("http") or " " not in f.value %}<code>{{ f.value }}</code> {{ copy(f.value) }}{% else %}{{ f.value }}{% endif %}</td></tr>{% endfor %}</table>{% endif %}
-    {% if s.screenshot %}<figure><img src="{{ s.screenshot }}" alt="Screenshot of {{ s.url }}" loading="lazy"><figcaption>Captured by our browser agent during research</figcaption></figure>{% endif %}
   </li>
 {% endfor %}
 </ol>

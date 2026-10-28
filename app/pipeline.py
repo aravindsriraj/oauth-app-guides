@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 
 import httpx
 from google.cloud import storage
+from langchain_core.tracers.langchain import wait_for_all_tracers
+from langsmith import Client
 
 from app.agent import MODEL, Ctx, build
 from app.guide import (BROKEN, PROBE_TEXT, Claim, Entry, Guide, GuideDraft, apply_links, check_links, claims, gate,
@@ -62,8 +64,6 @@ def take_daily_slot(cap: int) -> bool:
 
 def share_trace(run_id: uuid.UUID) -> str:
     try:
-        from langchain_core.tracers.langchain import wait_for_all_tracers
-        from langsmith import Client
         wait_for_all_tracers()
         # ponytail: share_run is deprecated (removed after Jan 2027); runs.share.create needs session + trace ids
         return Client().share_run(run_id)
@@ -89,7 +89,7 @@ async def run(app_input: str, emit, facts: dict | None) -> Guide | None:
     guide = Guide(**draft.model_dump(), slug=slug, app_name=name, website=website, logo=(facts or {}).get("logo", ""),
                   composio=facts or {}, checks=checks, observed=observed, model=MODEL,
                   screenshots=[Entry(label=page, value=ours) for ours, page in ctx.shots.items()])
-    downgraded = gate(guide, ctx.seen, ctx.browsed, ctx.shots, (facts or {}).get("redirect_uri", ""))
+    downgraded = gate(guide, ctx.seen, ctx.browsed, (facts or {}).get("redirect_uri", ""))
     line(f"Evidence check: {downgraded} claim(s) downgraded (source not read this run, or a number not on the cited page)")
     async with httpx.AsyncClient() as client:
         urls = {c.source_url for c in claims(guide) if c.source_url} | {s.url for s in guide.steps if s.url}
@@ -97,10 +97,7 @@ async def run(app_input: str, emit, facts: dict | None) -> Guide | None:
     broken = apply_links(guide, guide.links)
     line(f"Link check: {len(guide.links)} links, {sum(v in BROKEN for v in guide.links.values())} broken"
          + (f", {broken} claim(s) marked uncertain" if broken else ""))
-    now = datetime.now(timezone.utc)
-    for c in [*claims(guide), *checks]:
-        c.checked_at = f"{now:%Y-%m-%d}" if c.source_url else ""
-    guide.generated_at = now.isoformat(timespec="seconds")
+    guide.generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     guide.seconds = int(time.time() - t0)
     guide.trace_url = await asyncio.to_thread(share_trace, run_id)
     await asyncio.to_thread(save_guide, guide)
@@ -131,8 +128,7 @@ async def plain_checks(app_input: str, name: str, facts: dict | None, line) -> t
             status = (await check_links({website}, client)).get(website)
             check("Website", f"{website} loads (HTTP {status})" if status and status > 0 else f"{website} did not load", website)
         if facts and facts["authorize_url"]:
-            kind, _ = await probe_authorize(facts, client)
-            check("Authorize URL", PROBE_TEXT[kind], facts["authorize_url"])
+            check("Authorize URL", PROBE_TEXT[await probe_authorize(facts, client)], facts["authorize_url"])
     return checks, website
 
 

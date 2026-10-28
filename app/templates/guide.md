@@ -36,8 +36,7 @@ Researched by agents on {{ g.generated_at[:10] }}. Tags: tested = seen during re
 {{ loop.index }}. **{{ s.label or "Step " ~ loop.index }}** ({{ "agent can do this" if s.actor == "agent" else "you" }}){% if s.url %} {{ s.url }}{% endif %}
    {{ s.text }} _[{{ s.tag }}]_{% if s.source_url %} ({{ s.source_url }}){% endif %}
 {% for f in s.fields %}   - {{ f.label }}: `{{ f.value }}`
-{% endfor %}{% if s.screenshot %}   ![Screenshot]({{ s.screenshot }})
-{% endif %}{% endfor %}
+{% endfor %}{% endfor %}
 ## Permissions
 
 {% for s in g.scopes %}- `{{ s.label }}`: review = {{ s.review }}. {{ s.text }} _[{{ s.tag }}]_{% if s.source_url %} ({{ s.source_url }}){% endif %}

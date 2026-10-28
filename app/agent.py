@@ -87,7 +87,7 @@ def _tools(ctx: Ctx, session, who: str):
     @tool
     async def browse(task: str, start_url: str) -> str:
         """Open a public page in a real browser and do a short look-around task, e.g. 'find the developer signup and
-        report what it asks for'. Returns what was observed, the URLs visited and screenshot URLs."""
+        report what it asks for'. Returns what was observed and the URLs visited."""
         say("opening browser at", start_url)
         safety = ("Rules: only look at public pages. Never sign up, log in, submit forms or enter any data. "
                   "Stop when you reach a login or signup form and report what it asks for. Task: ")
@@ -109,16 +109,12 @@ def _tools(ctx: Ctx, session, who: str):
             return f"browser failed: {e}"
         visited = sorted({s["url"] for s in steps if s.get("url")})
         ctx.browsed.update(visited)
-        shots = []
-        for s in [s for s in steps if s.get("screenshotUrl")][-2:]:
+        for s in [s for s in steps if s.get("screenshotUrl")][-2:]:  # keep the last two for the guide's gallery
             try:
-                ours = await asyncio.to_thread(ctx.upload, s["screenshotUrl"])
-                ctx.shots[ours] = s.get("url", "")
-                shots.append({"url": ours, "page": s.get("url", "")})
+                ctx.shots[await asyncio.to_thread(ctx.upload, s["screenshotUrl"])] = s.get("url", "")
             except Exception:
-                pass
-        return json.dumps({"success": w.get("isSuccess"), "observed": w.get("output") or "", "visited": visited,
-                           "screenshots": shots})
+                pass  # a missing screenshot shouldn't fail the research
+        return json.dumps({"success": w.get("isSuccess"), "observed": w.get("output") or "", "visited": visited})
 
     return web_search, read_page, browse
 
@@ -178,7 +174,8 @@ first on the developer portal or docs landing page, then on the developer signup
 Find out: whether developer signup is self-serve or 'contact sales'; whether it asks for a credit card or a paid plan; whether a separate developer account exists; where app creation starts.
 Split what you report:
 - observations: only what the browser itself experienced (the signup form asked for X, the console URL redirected to a login wall, a pricing gate appeared). Tag "tested", source_url = a URL from that browse call's "visited" list.
-- stated: what the pages say (requirements, policies, docs text). Tag "sourced", never "tested". List the screenshot URLs exactly as browse returned them, with a short caption.""" + RULES,
+- stated: what the pages say (requirements, policies, docs text). Tag "sourced", never "tested"."""
+         + RULES,
          "tools": [p_browse], "model": model,
          "response_format": ToolStrategy(PortalFindings),
          "middleware": [ModelCallLimitMiddleware(run_limit=6), ToolCallLimitMiddleware(tool_name="browse", run_limit=3)]},
@@ -200,7 +197,7 @@ Assembly rules:
 - dev_time: time until the developer has a working app for their own testing. launch_time: time until any customer can connect, including review waits; if installs are capped or API limits are reduced until review, launch_time includes that review. Put a short range in each label (e.g. "15-30 min", "Same day", "4-8 weeks") and the explanation in text; unsourced numbers are "uncertain".
 - flags: 0-4 short warnings (e.g. "Security assessment", "Developer account", "Marketplace review", "Paid plan").
 - own_app_reasons: only reasons that apply to {ctx.name}: their own name on the consent screen (say so if {ctx.name} shows it only after verification), scopes beyond Composio's defaults, faster triggers, custom or regional instances. Own rate limits count only if the source says {ctx.name}'s limits are counted per app, client or project, and the claim must name that unit as the source states it; if limits are per user, token or customer account, leave this reason out. Downsides of owning an app (e.g. stricter limits until it is reviewed or listed) are pitfalls, not reasons.
-- steps: from the setup findings. Attach a portal-explorer screenshot only to a step whose url is the page that screenshot shows. Use the ground-truth redirect URI. Do not add Composio steps; the page adds them.
+- steps: from the setup findings. Use the ground-truth redirect URI. Do not add Composio steps; the page adds them.
 - email_subject / email_body: a ready-to-send email to {ctx.name}'s developer support asking about OAuth app requirements, review and timelines for this use case, with [placeholders] for the sender's details.
 - If {ctx.name} does not offer OAuth for third-party apps, say so in difficulty_why and app_type and describe the alternative.""" + RULES
     return create_deep_agent(model=model, system_prompt=system, subagents=subagents,
