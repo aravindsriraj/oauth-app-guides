@@ -66,7 +66,7 @@ See [VERIFICATION.md](VERIFICATION.md).
 
 Two audits, each checking every sourced claim against its cited page by hand:
 - **First audit** (three early guides, 109 claims): 26% not on the cited page and 2% wrong. Each systematic error became a pipeline fix.
-- **Audit of the shipped library** (all five guides, 144 claims): 58% confirmed, 33% partly supported, 8% not on the cited page, and 1 claim wrong (a scope field in Linear's form, flagged in VERIFICATION.md).
+- **Audit of the shipped library** (all five guides, 148 claims): 57% confirmed, 34% partly supported, 8% not on the cited page, 0 wrong. The one error the first pass found, a scope field in Linear's form, was traced to a prompt, fixed, and the guide regenerated.
 
 Review also caught limits the agents had missed: Slack's 2025 rate limits for non-Marketplace apps, and HubSpot's 25-install cap before listing.
 

@@ -12,8 +12,8 @@ import httpx
 from google.cloud import storage
 
 from app.agent import MODEL, Ctx, build
-from app.guide import (PROBE_TEXT, Claim, Entry, Guide, GuideDraft, apply_links, check_links, claims, gate, probe_authorize,
-                       resolve, slugify)
+from app.guide import (BROKEN, PROBE_TEXT, Claim, Entry, Guide, GuideDraft, apply_links, check_links, claims, gate,
+                       probe_authorize, resolve, slugify)
 
 # ---------- storage (one GCS bucket) ----------
 
@@ -75,94 +75,28 @@ async def run(app_input: str, emit, facts: dict | None) -> Guide | None:
     """facts: the Composio toolkit details from resolve(), or None if Composio has no toolkit for this app."""
     t0 = time.time()
     line = lambda text, tag="", url="", who="checks": emit({"kind": "line", "who": who, "text": text, "tag": tag, "url": url})
-    async with httpx.AsyncClient(timeout=15) as client:
-        name = facts["name"] if facts else app_input.strip()
-        slug = slugify(facts["toolkit"] if facts else name)
-        checks: list[Claim] = []
+    name = facts["name"] if facts else app_input.strip()
+    slug = slugify(facts["toolkit"] if facts else name)
 
-        def check(label, text, url):
-            checks.append(Claim(label=label, text=text, tag="tested", source_url=url))
-            line(text, "tested", url)
-
-        if facts:
-            check("Composio toolkit", f"Composio has a toolkit for {name} (`{facts['toolkit']}`); Composio-managed OAuth app: "
-                  f"{'yes' if facts['managed'] else 'no'}; auth methods: {', '.join(facts['auth_modes'])}",
-                  "https://docs.composio.dev/toolkits/managed-auth")
-        else:
-            line(f"No Composio toolkit matched “{app_input}”; researching it from scratch", "uncertain")
-
-        website = (facts or {}).get("app_url") or (app_input if "." in app_input else "")
-        if website and not website.startswith("http"):
-            website = "https://" + website
-        jobs = []
-        if website:
-            jobs.append(check_links({website}, client))
-        if facts and facts["authorize_url"]:
-            jobs.append(probe_authorize(facts, client))
-        results = await asyncio.gather(*jobs)
-        if website:
-            status = results.pop(0).get(website)
-            check("Website", f"{website} loads (HTTP {status})" if status and status > 0 else f"{website} did not load", website)
-        if results:
-            kind, _ = results[0]
-            check("Authorize URL", PROBE_TEXT[kind], facts["authorize_url"])
-
+    checks, website = await plain_checks(app_input, name, facts, line)
     ctx = Ctx(name=name, facts=facts or {}, checks=checks, emit=emit, upload=lambda u: upload_shot(u, slug))
     ctx.seen.update({u: "" for u in [website, (facts or {}).get("authorize_url", ""), "https://docs.composio.dev/toolkits/managed-auth"] if u})
-    agent = build(ctx)
-    run_id = uuid.uuid4()
-    config = {"run_id": run_id, "run_name": f"guide: {name}", "recursion_limit": 120}
-    task_names: dict[str, str] = {}
-    observed: list[Claim] = []
-    draft: GuideDraft | None = None
-    line("Orchestrator is briefing three specialists", who="orchestrator")
-    try:
-        async with asyncio.timeout(540):  # well inside Cloud Run's 900s request timeout
-            async for ns, update in agent.astream({"messages": [{"role": "user", "content": f"Write the OAuth app setup guide for {name}."}]},
-                                                  config=config, stream_mode="updates", subgraphs=True):
-                if ns:  # inside a specialist; tools report their own progress
-                    continue
-                for val in (update or {}).values():
-                    if not isinstance(val, dict):
-                        continue
-                    if val.get("structured_response") is not None:
-                        draft = val["structured_response"]
-                    for m in val.get("messages") or []:
-                        for tc in getattr(m, "tool_calls", None) or []:
-                            if tc["name"] == "task":
-                                who = tc["args"].get("subagent_type", "specialist").replace("-", " ")
-                                task_names[tc["id"]] = who
-                                line(f"→ {who}: {tc['args'].get('description', '')[:160]}", who="orchestrator")
-                            elif tc["name"] == "GuideDraft":
-                                line("Assembling the guide", who="orchestrator")
-                        if getattr(m, "type", "") == "tool" and getattr(m, "name", "") == "task":
-                            who = task_names.get(m.tool_call_id, "specialist")
-                            data = report_findings(who, str(m.content), line)
-                            if who == "portal explorer":
-                                for o in data.get("observations", []):
-                                    try:
-                                        observed.append(Claim.model_validate(o))
-                                    except ValueError:  # skip a malformed observation rather than lose the run
-                                        pass
-    except TimeoutError:
-        line("Research ran out of time", "uncertain", who="orchestrator")
+    draft, observed, run_id = await research(build(ctx), name, line)
     if draft is None:
         emit({"kind": "error", "text": "The agents did not produce a guide. Try again in a minute."})
         return None
-    if isinstance(draft, dict):
-        draft = GuideDraft.model_validate(draft)
 
     guide = Guide(**draft.model_dump(), slug=slug, app_name=name, website=website, logo=(facts or {}).get("logo", ""),
                   composio=facts or {}, checks=checks, observed=observed, model=MODEL,
                   screenshots=[Entry(label=page, value=ours) for ours, page in ctx.shots.items()])
     downgraded = gate(guide, ctx.seen, ctx.browsed, ctx.shots, (facts or {}).get("redirect_uri", ""))
-    line(f"Evidence check: {downgraded} claim(s) downgraded (source not read this run, or a number not on the cited page)", who="checks")
+    line(f"Evidence check: {downgraded} claim(s) downgraded (source not read this run, or a number not on the cited page)")
     async with httpx.AsyncClient() as client:
         urls = {c.source_url for c in claims(guide) if c.source_url} | {s.url for s in guide.steps if s.url}
         guide.links = await check_links(urls, client)
     broken = apply_links(guide, guide.links)
-    line(f"Link check: {len(guide.links)} links, {sum(v in (0, 404, 410) for v in guide.links.values())} broken"
-         + (f", {broken} claim(s) marked uncertain" if broken else ""), who="checks")
+    line(f"Link check: {len(guide.links)} links, {sum(v in BROKEN for v in guide.links.values())} broken"
+         + (f", {broken} claim(s) marked uncertain" if broken else ""))
     now = datetime.now(timezone.utc)
     for c in [*claims(guide), *checks]:
         c.checked_at = f"{now:%Y-%m-%d}" if c.source_url else ""
@@ -172,6 +106,84 @@ async def run(app_input: str, emit, facts: dict | None) -> Guide | None:
     await asyncio.to_thread(save_guide, guide)
     emit({"kind": "done", "text": f"Guide ready in {guide.seconds}s", "url": f"/guides/{slug}"})
     return guide
+
+
+async def plain_checks(app_input: str, name: str, facts: dict | None, line) -> tuple[list[Claim], str]:
+    """What our own code verifies before any agent runs: the Composio toolkit, the website, the authorize URL."""
+    checks: list[Claim] = []
+
+    def check(label, text, url):
+        checks.append(Claim(label=label, text=text, tag="tested", source_url=url))
+        line(text, "tested", url)
+
+    if facts:
+        check("Composio toolkit", f"Composio has a toolkit for {name} (`{facts['toolkit']}`); Composio-managed OAuth app: "
+              f"{'yes' if facts['managed'] else 'no'}; auth methods: {', '.join(facts['auth_modes'])}",
+              "https://docs.composio.dev/toolkits/managed-auth")
+    else:
+        line(f"No Composio toolkit matched “{app_input}”; researching it from scratch", "uncertain")
+
+    website = (facts or {}).get("app_url") or (app_input if "." in app_input else "")
+    if website and not website.startswith("http"):
+        website = "https://" + website
+    async with httpx.AsyncClient(timeout=15) as client:
+        if website:
+            status = (await check_links({website}, client)).get(website)
+            check("Website", f"{website} loads (HTTP {status})" if status and status > 0 else f"{website} did not load", website)
+        if facts and facts["authorize_url"]:
+            kind, _ = await probe_authorize(facts, client)
+            check("Authorize URL", PROBE_TEXT[kind], facts["authorize_url"])
+    return checks, website
+
+
+async def research(agent, name: str, line) -> tuple[GuideDraft | None, list[Claim], uuid.UUID]:
+    """Stream the agent team, reporting progress. Returns the draft guide, the browser's observations and the trace id."""
+    run_id = uuid.uuid4()
+    config = {"run_id": run_id, "run_name": f"guide: {name}", "recursion_limit": 120}
+    task_names: dict[str, str] = {}  # task tool_call_id -> specialist
+    observed: list[Claim] = []
+    draft = None
+    line("Orchestrator is briefing three specialists", who="orchestrator")
+    try:
+        async with asyncio.timeout(540):  # well inside Cloud Run's 900s request timeout
+            async for ns, update in agent.astream({"messages": [{"role": "user", "content": f"Write the OAuth app setup guide for {name}."}]},
+                                                  config=config, stream_mode="updates", subgraphs=True):
+                if ns:  # inside a specialist; its tools report their own progress
+                    continue
+                for val in (update or {}).values():
+                    if not isinstance(val, dict):
+                        continue
+                    if val.get("structured_response") is not None:
+                        draft = val["structured_response"]
+                    for m in val.get("messages") or []:
+                        observed += on_message(m, task_names, line)
+    except TimeoutError:
+        line("Research ran out of time", "uncertain", who="orchestrator")
+    if isinstance(draft, dict):
+        draft = GuideDraft.model_validate(draft)
+    return draft, observed, run_id
+
+
+def on_message(m, task_names: dict[str, str], line) -> list[Claim]:
+    """Report the lead writer's briefs and each specialist's findings. Returns the browser observations, if any."""
+    for tc in getattr(m, "tool_calls", None) or []:
+        if tc["name"] == "task":
+            who = tc["args"].get("subagent_type", "specialist").replace("-", " ")
+            task_names[tc["id"]] = who
+            line(f"→ {who}: {tc['args'].get('description', '')[:160]}", who="orchestrator")
+        elif tc["name"] == "GuideDraft":
+            line("Assembling the guide", who="orchestrator")
+    if getattr(m, "type", "") != "tool" or getattr(m, "name", "") != "task":
+        return []
+    who = task_names.get(m.tool_call_id, "specialist")
+    data = report_findings(who, str(m.content), line)
+    observed = []
+    for o in data.get("observations", []) if who == "portal explorer" else []:
+        try:
+            observed.append(Claim.model_validate(o))
+        except ValueError:  # skip a malformed observation rather than lose the run
+            pass
+    return observed
 
 
 def report_findings(who: str, content: str, line):

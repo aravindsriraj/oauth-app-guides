@@ -20,20 +20,21 @@ Every guide is checked by plain code, not by the model, before it is saved:
 
 These rules live in `app/guide.py` (`gate`, `apply_links`, `classify_probe`) and are exercised by `uv run python -m app.check`.
 
-## 2. Audit of the shipped library (all five guides, 144 sourced claims)
+## 2. Audit of the shipped library (all five guides, 148 sourced claims)
 
 **Method.** The guides live on the site are saved as `verification/final-*.json`. For every claim tagged sourced, we fetched the cited page with the same Composio tool the agents use and pulled the best-matching passages (`uv run python verification/source_passages.py verification/final-linear.json`). We then read each claim against its page. Where a number, scope or rule mattered, we searched the full page for it. The passages aren't committed because they're copied documentation text; the script regenerates them.
 
 | Guide | Sourced claims | Confirmed | Partly supported | Not on the cited page | Wrong |
 |---|---|---|---|---|---|
-| Linear | 22 | 12 | 6 | 3 | 1 |
+| Linear | 26 | 13 | 10 | 3 | 0 |
 | Slack | 28 | 11 | 14 | 3 | 0 |
 | HubSpot | 30 | 22 | 6 | 2 | 0 |
 | Gmail | 34 | 17 | 16 | 1 | 0 |
 | Pipedrive | 30 | 22 | 5 | 3 | 0 |
-| **Total** | **144** | **84 (58%)** | **47 (33%)** | **12 (8%)** | **1 (0.7%)** |
+| **Total** | **148** | **85 (57%)** | **51 (34%)** | **12 (8%)** | **0** |
 
-- **The one wrong claim:** Linear, step "Configure application details", tells you to "select the required scopes" in the app form. Linear's form has no scope field: the manifest docs list every form field and none is a scope. Scopes go in the authorization URL, which Composio builds. We left it in the guide (our policy is to fix the pipeline, never hand-edit) and flag it here.
+- **No wrong claims remain.** The first pass of this audit found one: Linear's "Configure application details" step told you to "select the required scopes" in the app form. Linear's form has no scope field (its manifest docs list every field); scopes go in the authorization URL, which Composio builds. The cause was our setup prompt, which asked for a scopes value in every provider's form. It now asks only for fields the docs show. The regenerated Linear guide lists the real fields and adds a pitfall, "Scopes configured in authorize URL, not console". The Linear row above is that regenerated guide.
+- **Third-party sources:** four Linear claims cite a third-party setup guide (docs.unified.to). Each matches Linear's own docs, for example default private distribution and the 2–80 character name rule. They're graded "partly supported" because the citation isn't Linear's.
 - **Not on the cited page (12):** mostly plausible absences ("no install cap", "no fee") and consent-screen branding claims cited to a general OAuth page.
 - **Partly supported (47):** the core fact is on the page but a detail isn't, such as a button label, "5 to 10 workspaces" where Slack says "5 or more", or a phrase like "CASA Tier 2".
 - **Tested claims** (2–5 per guide) are browser observations of public pages: login walls, signup forms, "no credit card needed". The screenshots shown in each guide are the evidence. We did not re-run the browser for this audit.
