@@ -16,7 +16,7 @@ Every guide is checked by plain code, not by the model, before it is saved:
 | Was the cited page actually read? | A "sourced" claim keeps its tag only if its URL was read or returned by search during this run | otherwise uncertain |
 | Is the number on the page? | Every number in a sourced claim must appear in the text the agent read at that URL | otherwise uncertain |
 | Do the links work? | Every cited URL is fetched; a 404, 410 or DNS failure downgrades the claim | otherwise uncertain |
-| Steps and screenshots | A setup step is never "tested" (no one logs in); a screenshot stays on a step only if it shows that step's page; any "redirect" field is forced to Composio's redirect URI | n/a |
+| Steps | A setup step is never "tested" (no one logs in); any "redirect" field is forced to Composio's redirect URI. Screenshots appear only under "What our browser saw" | n/a |
 
 These rules live in `app/guide.py` (`gate`, `apply_links`, `classify_probe`) and are exercised by `uv run python -m app.check`.
 
