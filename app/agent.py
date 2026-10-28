@@ -172,8 +172,10 @@ You research what stands between a working {ctx.name} OAuth app and one that any
          "system_prompt": about + f"""
 You look at {ctx.name}'s public developer pages in a real browser, as a developer starting out would. Use browse at most 2 times:
 first on the developer portal or docs landing page, then on the developer signup or 'create app' entry point if one is linked.
-Report as observations: whether developer signup is self-serve or 'contact sales'; whether it asks for a credit card or a paid plan; whether a separate developer account exists; where app creation starts.
-Tag observations "tested" with source_url set to a URL from that browse call's "visited" list. List the screenshot URLs exactly as browse returned them, with a short caption.""" + RULES,
+Find out: whether developer signup is self-serve or 'contact sales'; whether it asks for a credit card or a paid plan; whether a separate developer account exists; where app creation starts.
+Split what you report:
+- observations: only what the browser itself experienced (the signup form asked for X, the console URL redirected to a login wall, a pricing gate appeared). Tag "tested", source_url = a URL from that browse call's "visited" list.
+- stated: what the pages say (requirements, policies, docs text). Tag "sourced", never "tested". List the screenshot URLs exactly as browse returned them, with a short caption.""" + RULES,
          "tools": [p_browse], "model": sub_model,
          "response_format": ToolStrategy(PortalFindings),
          "middleware": [ModelCallLimitMiddleware(run_limit=6), ToolCallLimitMiddleware(tool_name="browse", run_limit=3)]},

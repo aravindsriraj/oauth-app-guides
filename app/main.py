@@ -24,8 +24,8 @@ ACTIVE: str | None = None    # slug of the one live run allowed at a time
 ORDER = {"easy": 0, "medium": 1, "hard": 2}
 
 
-def page(request, name, status=200, **ctx):
-    return T.TemplateResponse(request, name, ctx, status_code=status)
+def page(request, template, status=200, **ctx):
+    return T.TemplateResponse(request, template, ctx, status_code=status)
 
 
 @app.get("/", response_class=HTMLResponse)

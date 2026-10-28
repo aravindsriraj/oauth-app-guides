@@ -86,7 +86,8 @@ class ApprovalFindings(BaseModel):
 
 
 class PortalFindings(BaseModel):
-    observations: list[Claim]
+    observations: list[Claim] = Field(description="What the browser itself saw happen: a form's fields, a login wall, a card field, a plan gate. Tag tested.")
+    stated: list[Claim] = Field(description="What the pages say (policies, requirements, docs text). Tag sourced, never tested.")
     screenshots: list[Entry] = Field(description="label = caption, value = screenshot URL returned by browse")
 
 

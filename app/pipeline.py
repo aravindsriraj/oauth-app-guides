@@ -86,7 +86,7 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
             line(text, "tested", url)
 
         if facts:
-            check("Composio toolkit", f"Composio has a {name} toolkit (`{facts['toolkit']}`); Composio-managed OAuth app: "
+            check("Composio toolkit", f"Composio has a toolkit for {name} (`{facts['toolkit']}`); Composio-managed OAuth app: "
                   f"{'yes' if facts['managed'] else 'no'}; auth methods: {', '.join(facts['auth_modes'])}",
                   "https://docs.composio.dev/toolkits/managed-auth")
         else:
