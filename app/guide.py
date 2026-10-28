@@ -113,18 +113,26 @@ def slugify(s: str) -> str:
 
 def toolkit_facts(d: dict) -> dict:
     """Composio toolkit details -> the ground truth the guide and agents rely on."""
-    modes = [a.get("mode") for a in d.get("auth_config_details") or []]
-    oauth = next((a for a in d.get("auth_config_details") or [] if a.get("mode") == "OAUTH2"), {})
-    opt = {f["name"]: f.get("default") for f in oauth.get("fields", {}).get("auth_config_creation", {}).get("optional", [])}
-    prov = oauth.get("deprecated_auth_provider_details") or {}
-    managed = d.get("composio_managed_auth_schemes") or []
+    configs = d.get("auth_config_details") or []
+    oauth = next((a for a in configs if a.get("mode") == "OAUTH2"), {})
+    defaults = {f["name"]: f.get("default") or "" for f in oauth.get("fields", {}).get("auth_config_creation", {}).get("optional", [])}
+    provider = oauth.get("deprecated_auth_provider_details") or {}
+    meta = d.get("meta") or {}
     return {
-        "toolkit": d["slug"], "name": d.get("name", d["slug"]), "auth_modes": modes, "managed": "OAUTH2" in managed,
-        "redirect_uri": opt.get("oauth_redirect_uri") or "",
-        "default_scopes": [s for s in (opt.get("scopes") or "").split(",") if s],
-        "authorize_url": prov.get("authorization_url", ""), "token_url": prov.get("token_url", ""),
-        "app_url": (d.get("meta") or {}).get("app_url", ""), "logo": (d.get("meta") or {}).get("logo", ""),
+        "toolkit": d["slug"], "name": d.get("name", d["slug"]), "auth_modes": [a.get("mode") for a in configs],
+        "managed": "OAUTH2" in (d.get("composio_managed_auth_schemes") or []),
+        "redirect_uri": defaults.get("oauth_redirect_uri", ""),
+        "default_scopes": [x for x in defaults.get("scopes", "").split(",") if x],
+        "authorize_url": provider.get("authorization_url", ""), "token_url": provider.get("token_url", ""),
+        "app_url": meta.get("app_url", ""), "logo": meta.get("logo", ""),
     }
+
+
+def pick_toolkit(items: list[dict], q: str) -> dict | None:
+    """An exact slug or name match, else a slug that contains the query (or vice versa). Never just the first hit."""
+    flat = q.replace(" ", "")
+    return next((i for i in items if i["slug"] == flat or i["name"].lower() == q), None) or \
+        next((i for i in items if flat in i["slug"] or i["slug"] in flat), None)
 
 
 async def resolve(app_input: str, client: httpx.AsyncClient) -> dict | None:
@@ -132,10 +140,7 @@ async def resolve(app_input: str, client: httpx.AsyncClient) -> dict | None:
     q = query_for(app_input)
     h = {"x-api-key": os.environ["COMPOSIO_API_KEY"]}
     r = await client.get(f"{API}/v3/toolkits", params={"search": q, "limit": 10}, headers=h)
-    items = r.json().get("items", []) if r.is_success else []
-    flat = q.replace(" ", "")
-    pick = next((i for i in items if i["slug"] == flat or i["name"].lower() == q), None) or \
-        next((i for i in items if flat in i["slug"] or i["slug"] in flat), None)
+    pick = pick_toolkit(r.json().get("items", []) if r.is_success else [], q)
     if not pick:
         return None
     r = await client.get(f"{API}/v3.1/toolkits/{pick['slug']}", headers=h)
@@ -248,40 +253,53 @@ def per_app_limits(c: Claim, page: str) -> bool:
 
 
 def gate(d: GuideDraft, seen: dict[str, str], browsed: set[str], redirect_uri: str) -> int:
-    """Enforce the evidence rules in place; returns how many claims were downgraded.
+    """Enforce the evidence rules in place; returns how many claims were downgraded or dropped.
     seen maps each url the agents read this run to the text they saw there."""
     seen, browsed = {norm(u): t for u, t in seen.items()}, {norm(u) for u in browsed}
     steps = {id(s) for s in d.steps}
-    n = 0
-    for c in claims(d):
-        before = c.tag
-        if not c.source_url.startswith(("http://", "https://")):
-            c.source_url = ""
-        u = norm(c.source_url) if c.source_url else ""
-        # a step is never "tested": agents never log in, and every setup step happens behind the provider's login
-        if c.tag == "tested" and (u not in browsed or id(c) in steps):
-            c.tag = "sourced"
-        if c.tag == "sourced" and (not u or (u not in seen and u not in browsed)):
-            c.tag, c.source_url = "uncertain", ""
-        # a sourced number must appear on the page the agent read, or it was made up or misattributed
-        if c.tag == "sourced" and not numbers_on_page(c, seen.get(u, "")):
-            c.tag = "uncertain"
-        # likewise a scope's review level is only sourced if the page actually lists that scope
-        if c.tag == "sourced" and isinstance(c, Scope) and not scope_on_page(c, seen.get(u, "")):
-            c.tag = "uncertain"
-        n += c.tag != before
-    # "own app = own rate limits" was the most common wrong claim in the audit: keep it only when the page backs it
+    n = sum(downgrade(c, seen, browsed, is_step=id(c) in steps) for c in claims(d))
+    n += drop_unbacked_quota_reasons(d, seen)
+    for s in d.steps:
+        clean_step(s, redirect_uri)
+    return n
+
+
+def downgrade(c: Claim, seen: dict[str, str], browsed: set[str], is_step: bool) -> bool:
+    """Apply the tag rules to one claim; True if its tag changed."""
+    before = c.tag
+    if not c.source_url.startswith(("http://", "https://")):
+        c.source_url = ""
+    u = norm(c.source_url) if c.source_url else ""
+    # a step is never "tested": agents never log in, and every setup step happens behind the provider's login
+    if c.tag == "tested" and (is_step or u not in browsed):
+        c.tag = "sourced"
+    if c.tag == "sourced" and (not u or (u not in seen and u not in browsed)):
+        c.tag, c.source_url = "uncertain", ""
+    if c.tag == "sourced" and not backed_by_page(c, seen.get(u, "")):
+        c.tag = "uncertain"
+    return c.tag != before
+
+
+def backed_by_page(c: Claim, page: str) -> bool:
+    """Its numbers must be on the page the agent read, and a scope's review level needs the scope on that page."""
+    return numbers_on_page(c, page) and (not isinstance(c, Scope) or scope_on_page(c, page))
+
+
+def drop_unbacked_quota_reasons(d: GuideDraft, seen: dict[str, str]) -> int:
+    """'Own app = own rate limits' was the most common wrong claim in the audit: keep it only when the page backs it."""
     kept = [c for c in d.own_app_reasons
             if not QUOTA.search(f"{c.label} {c.text}") or per_app_limits(c, seen.get(norm(c.source_url), ""))]
-    n += len(d.own_app_reasons) - len(kept)
-    d.own_app_reasons = kept
-    for s in d.steps:
-        if not s.url.startswith(("http://", "https://")):
-            s.url = ""
-        for f in s.fields:
-            if "redirect" in f.label.lower() and redirect_uri:
-                f.value = redirect_uri
-    return n
+    dropped, d.own_app_reasons = len(d.own_app_reasons) - len(kept), kept
+    return dropped
+
+
+def clean_step(s: Step, redirect_uri: str) -> None:
+    """Steps link only to http(s) pages, and any redirect field gets Composio's exact redirect URI."""
+    if not s.url.startswith(("http://", "https://")):
+        s.url = ""
+    for f in s.fields:
+        if "redirect" in f.label.lower() and redirect_uri:
+            f.value = redirect_uri
 
 
 BROKEN = {0, 404, 410}

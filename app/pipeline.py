@@ -71,38 +71,47 @@ def share_trace(run_id: uuid.UUID) -> str:
         return ""
 
 
+COMPOSIO_DOCS = "https://docs.composio.dev/toolkits/managed-auth"
+
+
 async def run(app_input: str, emit, facts: dict | None) -> Guide | None:
     """facts: the Composio toolkit details from resolve(), or None if Composio has no toolkit for this app."""
     t0 = time.time()
     line = lambda text, tag="", url="", who="checks": emit({"kind": "line", "who": who, "text": text, "tag": tag, "url": url})
-    name = facts["name"] if facts else app_input.strip()
-    slug = slugify(facts["toolkit"] if facts else name)
+    c = facts or {}
+    name = c.get("name") or app_input.strip()
+    slug = slugify(c.get("toolkit") or name)
 
     checks, website = await plain_checks(app_input, name, facts, line)
-    ctx = Ctx(name=name, facts=facts or {}, checks=checks, emit=emit, upload=lambda u: upload_shot(u, slug))
-    ctx.seen.update({u: "" for u in [website, (facts or {}).get("authorize_url", ""), "https://docs.composio.dev/toolkits/managed-auth"] if u})
+    ctx = Ctx(name=name, facts=c, checks=checks, emit=emit, upload=lambda u: upload_shot(u, slug))
+    ctx.seen.update({u: "" for u in [website, c.get("authorize_url", ""), COMPOSIO_DOCS] if u})
     draft, observed, run_id = await research(build(ctx), name, line)
     if draft is None:
         emit({"kind": "error", "text": "The agents did not produce a guide. Try again in a minute."})
         return None
 
-    guide = Guide(**draft.model_dump(), slug=slug, app_name=name, website=website, logo=(facts or {}).get("logo", ""),
-                  composio=facts or {}, checks=checks, observed=observed, model=MODEL,
+    guide = Guide(**draft.model_dump(), slug=slug, app_name=name, website=website, logo=c.get("logo", ""), composio=c,
+                  checks=checks, observed=observed, model=MODEL,
                   screenshots=[Entry(label=page, value=ours) for ours, page in ctx.shots.items()])
-    downgraded = gate(guide, ctx.seen, ctx.browsed, (facts or {}).get("redirect_uri", ""))
-    line(f"Evidence check: {downgraded} claim(s) downgraded (source not read this run, or a number not on the cited page)")
-    async with httpx.AsyncClient() as client:
-        urls = {c.source_url for c in claims(guide) if c.source_url} | {s.url for s in guide.steps if s.url}
-        guide.links = await check_links(urls, client)
-    broken = apply_links(guide, guide.links)
-    line(f"Link check: {len(guide.links)} links, {sum(v in BROKEN for v in guide.links.values())} broken"
-         + (f", {broken} claim(s) marked uncertain" if broken else ""))
+    await enforce_evidence(guide, ctx, line)
     guide.generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     guide.seconds = int(time.time() - t0)
     guide.trace_url = await asyncio.to_thread(share_trace, run_id)
     await asyncio.to_thread(save_guide, guide)
     emit({"kind": "done", "text": f"Guide ready in {guide.seconds}s", "url": f"/guides/{slug}"})
     return guide
+
+
+async def enforce_evidence(guide: Guide, ctx: Ctx, line) -> None:
+    """The evidence gate, then a check of every cited link."""
+    downgraded = gate(guide, ctx.seen, ctx.browsed, ctx.facts.get("redirect_uri", ""))
+    line(f"Evidence check: {downgraded} claim(s) downgraded (source not read this run, or a number not on the cited page)")
+    async with httpx.AsyncClient() as client:
+        urls = {c.source_url for c in claims(guide) if c.source_url} | {s.url for s in guide.steps if s.url}
+        guide.links = await check_links(urls, client)
+    broken = apply_links(guide, guide.links)
+    dead = sum(status in BROKEN for status in guide.links.values())
+    line(f"Link check: {len(guide.links)} links, {dead} broken" + (f", {broken} claim(s) marked uncertain" if broken else ""))
 
 
 async def plain_checks(app_input: str, name: str, facts: dict | None, line) -> tuple[list[Claim], str]:
@@ -116,13 +125,11 @@ async def plain_checks(app_input: str, name: str, facts: dict | None, line) -> t
     if facts:
         check("Composio toolkit", f"Composio has a toolkit for {name} (`{facts['toolkit']}`); Composio-managed OAuth app: "
               f"{'yes' if facts['managed'] else 'no'}; auth methods: {', '.join(facts['auth_modes'])}",
-              "https://docs.composio.dev/toolkits/managed-auth")
+              COMPOSIO_DOCS)
     else:
         line(f"No Composio toolkit matched “{app_input}”; researching it from scratch", "uncertain")
 
-    website = (facts or {}).get("app_url") or (app_input if "." in app_input else "")
-    if website and not website.startswith("http"):
-        website = "https://" + website
+    website = website_for(app_input, facts or {})
     async with httpx.AsyncClient(timeout=15) as client:
         if website:
             status = (await check_links({website}, client)).get(website)
@@ -130,6 +137,12 @@ async def plain_checks(app_input: str, name: str, facts: dict | None, line) -> t
         if facts and facts["authorize_url"]:
             check("Authorize URL", PROBE_TEXT[await probe_authorize(facts, client)], facts["authorize_url"])
     return checks, website
+
+
+def website_for(app_input: str, facts: dict) -> str:
+    """Composio's app_url, else the input itself when it looks like a domain."""
+    site = facts.get("app_url") or (app_input.strip() if "." in app_input else "")
+    return site if not site or site.startswith("http") else "https://" + site
 
 
 async def research(agent, name: str, line) -> tuple[GuideDraft | None, list[Claim], uuid.UUID]:

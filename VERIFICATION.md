@@ -42,7 +42,11 @@ These rules live in `app/guide.py` (`gate`, `apply_links`, `classify_probe`) and
 
 ### Rule test on the shipped guides
 
-`uv run python verification/regate.py verification/final-*.json` re-reads every cited page and re-runs the final evidence gate on each shipped guide. **All 206 claims across the five guides keep their tags.** As a control, the same script run on the pre-rules Pipedrive guide (`verification/audited-pipedrive.json`) flags 9 claims, the same ones the first hand audit found.
+`uv run python verification/regate.py verification/final-*.json` re-reads every cited page and re-runs the final evidence gate on each shipped guide. **All 206 claims across the five guides keep their tags.** As a control, the same script run on the pre-rules Pipedrive guide (`verification/audited-pipedrive.json`) flags 9 claims. Compared with that guide's first hand audit:
+- **8 are real problems.** That's the wrong "own app = independent rate limits" reason (graded wrong by hand), six scope claims cited to an unrelated changelog post (graded not on page), and "Same day to 4 weeks", where the page says 21 business days (graded partly supported).
+- **1 is a false positive.** "45 days … 6 months" is confirmed by hand, but the page writes "six months".
+- **4 hand-flagged problems are missed.** They're citations that contain no number or scope (branding, admin access, cost, community link), which the rules can't check.
+- **1 hand grade was wrong.** The "60-minute" token lifetime *is* on the cited page, and the rules correctly kept it.
 
 One known false positive: the numbers rule looks for digits, so "6 months" fails against a page that writes "six months". This errs toward "uncertain", never toward overclaiming.
 
