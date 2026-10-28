@@ -3,7 +3,6 @@ import asyncio
 import json
 import os
 import re
-from collections import Counter
 from urllib.parse import urlparse
 
 import httpx
@@ -17,7 +16,7 @@ from app.guide import claims, resolve, slugify, verdict
 app = FastAPI()
 T = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 T.env.filters["domain"] = lambda u: urlparse(u).netloc.removeprefix("www.")
-T.env.globals.update(verdict=verdict, claims=claims, Counter=Counter)
+T.env.globals.update(verdict=verdict, claims=claims)
 DAILY_CAP = int(os.environ.get("DAILY_CAP", "30"))
 RUNS: dict[str, dict] = {}   # slug -> {"name", "events", "done", "task"}; one instance, so memory is the truth
 ACTIVE: str | None = None    # slug of the one live run allowed at a time

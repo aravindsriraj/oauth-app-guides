@@ -105,7 +105,7 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
             status = results.pop(0).get(website)
             check("Website", f"{website} loads (HTTP {status})" if status and status > 0 else f"{website} did not load", website)
         if results:
-            kind, url = results[0]
+            kind, _ = results[0]
             check("Authorize URL", PROBE_TEXT[kind], facts["authorize_url"])
 
     ctx = Ctx(name=name, slug=slug, facts=facts or {}, checks=checks, emit=emit, upload=lambda u: upload_shot(u, slug))
@@ -134,13 +134,17 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
                                 who = tc["args"].get("subagent_type", "specialist").replace("-", " ")
                                 task_names[tc["id"]] = who
                                 line(f"→ {who}: {tc['args'].get('description', '')[:160]}", who="orchestrator")
-                            elif tc["name"] in ("GuideDraft",):
+                            elif tc["name"] == "GuideDraft":
                                 line("Assembling the guide", who="orchestrator")
                         if getattr(m, "type", "") == "tool" and getattr(m, "name", "") == "task":
                             who = task_names.get(m.tool_call_id, "specialist")
                             data = report_findings(who, str(m.content), line)
                             if who == "portal explorer":
-                                observed += [Claim(**o) for o in data.get("observations", []) if isinstance(o, dict) and o.get("text")]
+                                for o in data.get("observations", []):
+                                    try:
+                                        observed.append(Claim.model_validate(o))
+                                    except ValueError:  # skip a malformed observation rather than lose the run
+                                        pass
     except TimeoutError:
         line("Research ran out of time", "uncertain", who="orchestrator")
     if draft is None:

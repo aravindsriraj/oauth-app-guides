@@ -46,7 +46,6 @@ def _session():
 def _tools(ctx: Ctx, session, who: str):
     """Tools are built per specialist so every progress line says who is working."""
     say = lambda text, url="": ctx.emit({"kind": "line", "who": who, "text": text, "url": url})
-    http = httpx.AsyncClient()
 
     async def run(slug, args):
         r = await asyncio.to_thread(session.execute, slug, arguments=args)
@@ -73,7 +72,8 @@ def _tools(ctx: Ctx, session, who: str):
     async def read_page(url: str) -> str:
         """Read the text of one web page (docs, help center, policy page)."""
         say("reading", url)
-        status = (await check_links({url}, http)).get(url)
+        async with httpx.AsyncClient() as http:
+            status = (await check_links({url}, http)).get(url)
         if status in BROKEN:  # the fetch tool can serve a cached copy of a page that no longer exists
             return f"{url} no longer exists (HTTP {status}). Find the current page instead."
         try:
