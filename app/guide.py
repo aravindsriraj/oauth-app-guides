@@ -63,6 +63,7 @@ class Guide(GuideDraft):
     composio: dict = {}
     checks: list[Claim] = []
     links: dict[str, int] = {}
+    screenshots: list[Entry] = []  # label = page shown, value = our image url
     generated_at: str = ""
     model: str = ""
     seconds: int = 0
@@ -217,16 +218,19 @@ def claims(d: GuideDraft):
         yield from group
 
 
-def gate(d: GuideDraft, seen: set[str], browsed: set[str], shots: set[str], redirect_uri: str) -> int:
-    """Enforce the evidence rules in place; returns how many claims were downgraded."""
+def gate(d: GuideDraft, seen: set[str], browsed: set[str], shots: dict[str, str], redirect_uri: str) -> int:
+    """Enforce the evidence rules in place; returns how many claims were downgraded.
+    shots maps each screenshot we uploaded this run to the page it shows."""
     seen, browsed = {norm(u) for u in seen}, {norm(u) for u in browsed}
+    steps = {id(s) for s in d.steps}
     n = 0
     for c in claims(d):
         before = c.tag
         if not c.source_url.startswith(("http://", "https://")):
             c.source_url = ""
         u = norm(c.source_url) if c.source_url else ""
-        if c.tag == "tested" and u not in browsed:
+        # a step is never "tested": agents never log in, and every setup step happens behind the provider's login
+        if c.tag == "tested" and (u not in browsed or id(c) in steps):
             c.tag = "sourced"
         if c.tag == "sourced" and (not u or (u not in seen and u not in browsed)):
             c.tag, c.source_url = "uncertain", ""
@@ -234,8 +238,8 @@ def gate(d: GuideDraft, seen: set[str], browsed: set[str], shots: set[str], redi
     for s in d.steps:
         if not s.url.startswith(("http://", "https://")):
             s.url = ""
-        if s.screenshot not in shots:
-            s.screenshot = ""
+        if s.screenshot not in shots or not s.url or norm(shots[s.screenshot]) != norm(s.url):
+            s.screenshot = ""  # only keep a screenshot that shows this step's own page
         for f in s.fields:
             if "redirect" in f.label.lower() and redirect_uri:
                 f.value = redirect_uri

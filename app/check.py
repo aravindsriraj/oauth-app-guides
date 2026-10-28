@@ -31,16 +31,22 @@ d = draft(prerequisites=[
     Claim(text="d", tag="sourced", source_url="javascript:alert(1)"),       # bad scheme -> uncertain, url cleared
     Claim(text="e", tag="uncertain"),
 ], steps=[Step(text="s", tag="sourced", source_url="https://docs.x.com/a", actor="you",
-               screenshot="https://evil.com/x.png", fields=[Entry(label="Redirect URL", value="https://wrong")])])
+               screenshot="https://evil.com/x.png", fields=[Entry(label="Redirect URL", value="https://wrong")]),
+          Step(text="open settings", tag="tested", source_url="https://x.com/signup", actor="you",  # steps happen behind login
+               url="https://x.com/settings/api", screenshot="https://ours/1.png"),                  # shot shows another page
+          Step(text="sign up", tag="sourced", source_url="https://x.com/signup", actor="you",
+               url="https://x.com/signup/", screenshot="https://ours/1.png")])                      # shot shows this page
 n = gate(d, seen={"https://docs.x.com/a", "https://x.com/signup"}, browsed={"https://x.com/signup"},
-         shots=set(), redirect_uri="https://backend.composio.dev/api/v1/auth-apps/add")
+         shots={"https://ours/1.png": "https://x.com/signup"}, redirect_uri="https://backend.composio.dev/api/v1/auth-apps/add")
 tags = [p.tag for p in d.prerequisites]
 assert tags == ["tested", "sourced", "uncertain", "uncertain", "uncertain"], tags
 assert d.prerequisites[2].source_url == "" and d.prerequisites[3].source_url == ""
 assert d.dev_time.tag == "uncertain"          # sourced with no url at all
 assert d.steps[0].tag == "sourced" and d.steps[0].screenshot == ""
 assert d.steps[0].fields[0].value == "https://backend.composio.dev/api/v1/auth-apps/add"
-assert n == 6, n                              # b, c, d, dev_time, launch_time, app_type
+assert d.steps[1].tag == "sourced" and d.steps[1].screenshot == ""
+assert d.steps[2].screenshot == "https://ours/1.png"
+assert n == 7, n                              # b, c, d, dev_time, launch_time, app_type, step 1
 
 # broken source after link check -> uncertain; blocked (403) stays
 d = draft(pitfalls=[Claim(text="p", tag="sourced", source_url="https://docs.x.com/gone"),
