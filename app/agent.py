@@ -166,7 +166,7 @@ A step's actor is "agent" only if it needs no login to {ctx.name} (drafting text
          "description": f"Finds what it takes for a {ctx.name} OAuth app to be usable by any customer: which scopes trigger review, review process, waits, costs, rejection reasons, limits before approval.",
          "system_prompt": about + f"""
 You research what stands between a working {ctx.name} OAuth app and one that any customer can install:
-- for each needed scope: does it trigger review or count as sensitive/restricted? (review: none, review, restricted, unknown);
+- scopes: every needed scope that triggers review or counts as sensitive/restricted, plus at most 6 others (review: none, review, restricted, unknown). Cite the page that lists the scope;
 - is app review, verification or a marketplace listing required, and when (always, above a user count, only for listing, only for some scopes)? Use approval claims labelled: When required, What's checked, Wait, Cost, Common rejections, Before approval (limits such as test users, token expiry, install caps);
 - install_cap and unreviewed_limits (always answer both): how many accounts can install before review or listing, and what lower API limits or terms restrictions apply to apps that are not reviewed or listed, even after launch. Read the provider's page on app distribution or install limits, and make one search "{ctx.name} API changelog install limits rate limits unlisted OR unreviewed OR non-marketplace apps";
 - pitfalls specific to review.""" + RULES + budget,

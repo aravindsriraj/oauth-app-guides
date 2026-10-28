@@ -118,7 +118,7 @@ async def run(app_input: str, emit, facts: dict | None = None, resolved: bool = 
     draft: GuideDraft | None = None
     line("Orchestrator is briefing three specialists", who="orchestrator")
     try:
-        async with asyncio.timeout(360):
+        async with asyncio.timeout(540):  # well inside Cloud Run's 900s request timeout
             async for ns, update in agent.astream({"messages": [{"role": "user", "content": f"Write the OAuth app setup guide for {name}."}]},
                                                   config=config, stream_mode="updates", subgraphs=True):
                 if ns:  # inside a specialist; tools report their own progress
