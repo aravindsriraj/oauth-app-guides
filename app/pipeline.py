@@ -15,7 +15,7 @@ from langsmith import Client
 
 from app.agent import MODEL, Ctx, build
 from app.guide import (BROKEN, PROBE_TEXT, Claim, Entry, Guide, GuideDraft, apply_links, check_links, claims, gate,
-                       probe_authorize, resolve, slugify)
+                       probe_authorize, query_for, resolve, slugify)
 
 # ---------- storage (one GCS bucket) ----------
 
@@ -79,8 +79,11 @@ COMPOSIO_DOCS = "https://docs.composio.dev/toolkits/managed-auth"
 
 
 def name_and_slug(app_input: str, facts: dict | None) -> tuple[str, str]:
-    """The app's display name and the guide's id: Composio's names when it has a toolkit, else the input as typed."""
-    name = (facts or {}).get("name") or app_input.strip()
+    """The app's display name and the guide's id: Composio's names when it has a toolkit, else the brand from a
+    website (strava.com -> Strava) or the name as typed."""
+    typed = app_input.strip()
+    brand = query_for(typed)
+    name = (facts or {}).get("name") or (brand.title() if brand != typed.lower() else typed)
     return name, slugify((facts or {}).get("toolkit") or name)
 
 

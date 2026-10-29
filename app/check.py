@@ -10,6 +10,7 @@ assert query_for("app.hubspot.com/oauth") == "hubspot"
 assert query_for("Google Sheets") == "google sheets"
 assert slugify("Google Sheets!") == "google-sheets"
 assert name_and_slug("  Acme Widgets ", None) == ("Acme Widgets", "acme-widgets")
+assert name_and_slug("https://www.strava.com/", None) == ("Strava", "strava")  # a website with no toolkit is named by its brand
 assert name_and_slug("linear.app", {"name": "Linear", "toolkit": "linear"}) == ("Linear", "linear")
 
 # authorize-URL probe, using responses seen live on 2026-10-28
