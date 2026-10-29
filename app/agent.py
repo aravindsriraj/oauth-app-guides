@@ -38,6 +38,7 @@ class Ctx:
 
 
 def _session():
+    """A Composio session with exactly the tools the agents use (direct-tools preset: no tool search or auth prompts)."""
     return Composio().sessions.create(
         user_id="oauth-guide-bot", session_preset=SESSION_PRESET_DIRECT_TOOLS,
         toolkits=["composio_search", "browser_tool"],

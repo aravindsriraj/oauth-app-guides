@@ -40,11 +40,13 @@ def load_guide(slug: str) -> Guide | None:
 
 
 def list_guides() -> list[Guide]:
+    """Every saved guide, for the home page."""
     # ponytail: downloads every guide per home-page view; write an index.json when the library nears 100
     return [Guide.model_validate_json(b.download_as_bytes()) for b in bucket().list_blobs(prefix="guides/")]
 
 
 def upload_shot(src: str, slug: str) -> str:
+    """Copy a browser screenshot into our bucket, since the browser service's links may expire. Returns the public URL."""
     data = httpx.get(src, timeout=20).raise_for_status().content
     blob = bucket().blob(f"shots/{slug}/{uuid.uuid4().hex[:8]}.png")
     blob.upload_from_string(data, content_type="image/png")

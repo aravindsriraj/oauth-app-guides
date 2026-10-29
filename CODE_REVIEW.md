@@ -23,7 +23,22 @@ Each component was then challenged with run data: was it ever exercised, and wou
 | `app/main.py` | 124 | Routes, live progress over SSE, one-run-at-a-time and daily limits | 6 A, 1 C (`generate`, mostly input checks) | A |
 | `app/check.py` | 97 | Assertions for every evidence rule and the probe classifier | A | A |
 
-Overall: average A (3.8), nothing worse than C, pyflakes clean.
+Overall: average A (3.8), nothing worse than C, pyflakes clean. 48 of 55 functions have docstrings. The other 7 are named for exactly what they do (`health`, `save_guide`, `load_guide`) or are nested helpers of 2–8 lines. The longest function is `_tools` (78 lines): it defines the three tools, and each tool has its own docstring.
+
+## Where each component comes from
+
+Nothing here was added speculatively. Each piece traces to the assignment, to a decision made while scoping this build, or to a failure observed while building it.
+
+| Component | Source |
+|---|---|
+| Evidence gate (tested / sourced / uncertain) | Assignment: "Be clear about what you tested, what sources support, and what remains uncertain." Each rule maps to an audit finding in VERIFICATION.md. |
+| Authorize-URL probe and link checks in our own code | Scoping decision: plain web-request checks in our own code rather than third-party Composio tools that need their own accounts |
+| Daily cap stored in Cloud Storage | Scoping decision: one live run at a time plus a daily cap; guides live in Cloud Storage |
+| Live progress over SSE, with replay | Assignment: "watch the agent generate its guide live". Scoping decision: server-rendered pages. |
+| Three specialists in parallel (Deep Agents) | Scoping decision: Deep Agents |
+| Screenshots of public pages | Scoping decision: guides with screenshots and direct links |
+| Public research traces | Scoping decision: link each guide to its public trace |
+| Retry on Gemini 400s | A production failure observed during the build; one line of LangChain middleware |
 
 ## Components challenged
 

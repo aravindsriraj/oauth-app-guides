@@ -20,6 +20,7 @@ assert classify_probe(200, "https://accounts.google.com/signin/oauth/error?authE
 
 # evidence gate
 def draft(**kw):
+    """A minimal guide draft; pass only the sections a test needs."""
     c = lambda tag, url="": Claim(text="t", tag=tag, source_url=url)
     base = dict(difficulty="easy", difficulty_why="", dev_time=c("sourced"), launch_time=c("sourced"), flags=[],
                 own_app_reasons=[], app_type=c("sourced"), prerequisites=[], steps=[], scopes=[], approval=[],

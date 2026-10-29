@@ -26,17 +26,20 @@ ORDER = {"easy": 0, "medium": 1, "hard": 2}
 
 
 def page(request, template, status=200, **ctx):
+    """Render a template; every page and error message goes through here."""
     return T.TemplateResponse(request, template, ctx, status_code=status)
 
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
+    """The library (easiest first) and the box to research a new app."""
     guides = sorted(pipeline.list_guides(), key=lambda g: (ORDER[g.difficulty], g.app_name.lower()))
     return page(request, "home.html", guides=guides, active=ACTIVE and RUNS.get(ACTIVE, {}).get("name"), active_slug=ACTIVE)
 
 
 @app.post("/generate")
 async def generate(request: Request, app_input: str = Form(alias="app")):
+    """Start a live run, unless the input is bad, the guide already exists, a run is going, or today's cap is used up."""
     global ACTIVE
     query = app_input.strip()
     if not query or len(query) > 80 or not re.fullmatch(r"[\w .:/&+\-]+", query):
@@ -62,6 +65,7 @@ async def generate(request: Request, app_input: str = Form(alias="app")):
     run = RUNS[slug] = {"name": name, "events": [], "done": False}
 
     async def go():
+        """The run itself, as a background task so it outlives the request."""
         global ACTIVE
         try:
             await pipeline.run(query, run["events"].append, facts)
@@ -77,6 +81,7 @@ async def generate(request: Request, app_input: str = Form(alias="app")):
 
 @app.get("/live/{slug}", response_class=HTMLResponse)
 def live(request: Request, slug: str):
+    """The page that shows a run's progress; sends you to the guide if the run already finished."""
     if slug in RUNS:
         return page(request, "live.html", slug=slug, name=RUNS[slug]["name"])
     if pipeline.load_guide(slug):
@@ -87,12 +92,14 @@ def live(request: Request, slug: str):
 
 @app.get("/live/{slug}/events")
 async def events(request: Request, slug: str):
+    """Server-sent events for a run: every progress line so far, then new ones as they arrive."""
     run = RUNS.get(slug)
     if not run:
         return PlainTextResponse("", 404)
     start = int(request.headers.get("last-event-id", "-1")) + 1  # EventSource resends this on reconnect
 
     async def stream():
+        """Replay from where the browser left off, ping every 15s so proxies keep the connection, end when the run does."""
         i, idle = start, 0.0
         while True:
             while i < len(run["events"]):
@@ -112,6 +119,7 @@ async def events(request: Request, slug: str):
 
 @app.get("/guides/{name}")
 def guide(request: Request, name: str):
+    """A guide as a web page, or as Markdown when the name ends in .md."""
     md = name.endswith(".md")
     g = pipeline.load_guide(slugify(name.removesuffix(".md")))
     if not g:
