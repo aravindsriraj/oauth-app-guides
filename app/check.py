@@ -1,5 +1,6 @@
 """Self-check for the deterministic logic: uv run python -m app.check"""
-from app.guide import Claim, Entry, Guide, GuideDraft, Scope, Step, apply_links, classify_probe, gate, query_for, slugify
+from app.guide import (Claim, Entry, Guide, GuideDraft, Scope, Step, apply_links, classify_probe, gate, icon_links, query_for,
+                       slugify)
 from app.main import T
 from app.pipeline import name_and_slug
 
@@ -12,6 +13,15 @@ assert slugify("Google Sheets!") == "google-sheets"
 assert name_and_slug("  Acme Widgets ", None) == ("Acme Widgets", "acme-widgets")
 assert name_and_slug("https://www.strava.com/", None) == ("Strava", "strava")  # a website with no toolkit is named by its brand
 assert name_and_slug("linear.app", {"name": "Linear", "toolkit": "linear"}) == ("Linear", "linear")
+
+# a site's icon: apple-touch-icon first, then the largest declared size, then /favicon.ico (tags as real sites write them)
+assert icon_links('''<link rel="icon" href="/assets/icons/favicon-16x16.png" sizes="16x16"/>
+<link
+  rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" sizes="180x180"/>
+<link rel='icon' href="//cdn.x.com/fav-96.png" sizes='96x96'><link rel="mask-icon" href="/mask.svg">''', "https://ouraring.com/en") == [
+    "https://ouraring.com/assets/icons/apple-touch-icon.png", "https://cdn.x.com/fav-96.png",
+    "https://ouraring.com/assets/icons/favicon-16x16.png", "https://ouraring.com/favicon.ico"]
+assert icon_links("<html>no icons</html>", "https://x.com/a/b") == ["https://x.com/favicon.ico"]
 
 # authorize-URL probe, using responses seen live on 2026-10-28
 assert classify_probe(200, "https://accounts.google.com/signin/oauth/error?authError=x", "Error 401: invalid_client") == "rejects_fake_client"

@@ -3,7 +3,7 @@ import asyncio
 import os
 import re
 from typing import Literal
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import httpx
 from pydantic import BaseModel, Field
@@ -191,6 +191,19 @@ async def probe_authorize(facts: dict, client: httpx.AsyncClient) -> str:
         return classify_probe(r.status_code, str(r.url), r.text)
     except httpx.HTTPError:
         return "error"
+
+
+def icon_links(html: str, base: str) -> list[str]:
+    """The icons a page declares, best first: apple-touch-icon (usually 180px), then larger sizes, then /favicon.ico."""
+    found = []
+    for tag in re.findall(r"<link\b[^>]*>", html, re.I):
+        rel = re.search(r"""\brel\s*=\s*["']?([^"'>]+)""", tag, re.I)
+        href = re.search(r"""\bhref\s*=\s*["']?([^"'\s>]+)""", tag, re.I)
+        if not (rel and href) or "icon" not in rel.group(1).lower() or "mask" in rel.group(1).lower():
+            continue  # mask-icon is a one-color outline, not the app's icon
+        size = re.search(r"""\bsizes\s*=\s*["']?(\d+)""", tag, re.I)
+        found.append(("apple" not in rel.group(1).lower(), -int(size.group(1)) if size else 0, urljoin(base, href.group(1))))
+    return [url for *_, url in sorted(found)] + [urljoin(base, "/favicon.ico")]
 
 
 BROKEN = {0, 404, 410}  # statuses check_links reports for a page that is gone; 403/429 only mean we were blocked

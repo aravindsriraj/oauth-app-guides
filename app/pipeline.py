@@ -7,6 +7,7 @@ import sys
 import time
 import uuid
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 import httpx
 from google.cloud import storage
@@ -14,8 +15,8 @@ from langchain_core.tracers.langchain import wait_for_all_tracers
 from langsmith import Client
 
 from app.agent import MODEL, Ctx, build
-from app.guide import (BROKEN, PROBE_TEXT, Claim, Entry, Guide, GuideDraft, apply_links, check_links, claims, gate,
-                       probe_authorize, query_for, resolve, slugify)
+from app.guide import (BROKEN, PROBE_TEXT, UA, Claim, Entry, Guide, GuideDraft, apply_links, check_links, claims, gate,
+                       icon_links, probe_authorize, query_for, resolve, slugify)
 
 # ---------- storage (one GCS bucket) ----------
 
@@ -45,12 +46,36 @@ def list_guides() -> list[Guide]:
     return [Guide.model_validate_json(b.download_as_bytes()) for b in bucket().list_blobs(prefix="guides/")]
 
 
-def upload_shot(src: str, slug: str) -> str:
-    """Copy a browser screenshot into our bucket, since the browser service's links may expire. Returns the public URL."""
-    data = httpx.get(src, timeout=20).raise_for_status().content
-    blob = bucket().blob(f"shots/{slug}/{uuid.uuid4().hex[:8]}.png")
-    blob.upload_from_string(data, content_type="image/png")
+def save_image(src: str, path: str) -> str:
+    """Copy an image into our bucket so the guide doesn't depend on someone else's link staying up. Returns its public URL."""
+    r = httpx.get(src, timeout=20, follow_redirects=True, headers=UA).raise_for_status()
+    kind = r.headers.get("content-type", "").split(";")[0]
+    if not kind.startswith("image/") or not r.content:
+        raise ValueError(f"{src} is not an image ({kind or 'no content type'})")
+    blob = bucket().blob(path)
+    blob.upload_from_string(r.content, content_type=kind)
     return blob.public_url
+
+
+def upload_shot(src: str, slug: str) -> str:
+    """A browser screenshot, since the browser service's links may expire."""
+    return save_image(src, f"shots/{slug}/{uuid.uuid4().hex[:8]}.png")
+
+
+async def icon_for(pages: list[str], slug: str) -> str:
+    """For an app Composio has no logo for: the icon its own site declares, copied into our bucket. Empty if none."""
+    async with httpx.AsyncClient(timeout=10, follow_redirects=True, headers=UA) as client:
+        for page in pages:
+            try:
+                r = await client.get(page)
+            except httpx.HTTPError:
+                continue
+            for url in icon_links(r.text, str(r.url)):
+                try:
+                    return await asyncio.to_thread(save_image, url, f"icons/{slug}")
+                except Exception:
+                    continue  # try the next candidate
+    return ""
 
 
 def take_daily_slot(cap: int) -> bool:
@@ -107,6 +132,9 @@ async def run(app_input: str, emit, facts: dict | None) -> Guide | None:
                   checks=checks, observed=observed, model=MODEL,
                   screenshots=[Entry(label=page, value=ours) for ours, page in ctx.shots.items()])
     await enforce_evidence(guide, ctx, line)
+    if not guide.logo:  # Composio has no toolkit, so no logo: use the site's own icon (or its developer portal's)
+        portal = next((f"{urlparse(s.url).scheme}://{urlparse(s.url).netloc}" for s in guide.steps if s.url), "")
+        guide.logo = await icon_for([u for u in (website, portal) if u], slug)
     guide.generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     guide.seconds = int(time.time() - t0)
     guide.trace_url = await asyncio.to_thread(share_trace, run_id)
