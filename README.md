@@ -67,7 +67,7 @@ See [VERIFICATION.md](VERIFICATION.md).
 
 Two audits, each checking every sourced claim against its cited page by hand:
 - **First audit** (three early guides, 109 claims): 26% not on the cited page and 2% wrong. Each systematic error became a pipeline fix.
-- **Audit of the shipped library** (all five guides, 148 claims): 57% confirmed, 34% partly supported, 8% not on the cited page, 0 wrong. The one error the first pass found, a scope field in Linear's form, was traced to a prompt, fixed, and the guide regenerated.
+- **Audit of the shipped library** (all five guides, 143 claims): 62% confirmed, 31% partly supported, 8% not on the cited page, 0 wrong. The errors this audit and the code review found were fixed in the pipeline and those guides regenerated: a scope field in Linear's form (traced to a prompt), and Gmail's probe result (traced to the probe).
 
 Review also caught limits the agents had missed: Slack's 2025 rate limits for non-Marketplace apps, and HubSpot's 25-install cap before listing.
 
@@ -116,4 +116,4 @@ app/templates/    pages and the Markdown version
 verification/     audited guides; source_passages.py (audit helper); regate.py (re-runs the evidence rules on saved guides)
 ```
 
-About 990 lines of Python in five files. Complexity (radon) averages A (3.8) across 57 functions and classes; none is worse than C, and every module scores A for maintainability.
+About 990 lines of Python in five files. Complexity (radon) averages A (3.8); nothing is worse than C, and every module scores A for maintainability. [CODE_REVIEW.md](CODE_REVIEW.md) walks through each module and each component, what was cut, and why the rest stays.

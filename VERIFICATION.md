@@ -11,7 +11,7 @@ Every guide is checked by plain code, not by the model, before it is saved:
 |---|---|---|
 | Does Composio provide an OAuth app? | Composio toolkit API (`composio_managed_auth_schemes`) | tested |
 | Does the website load? | HTTP request | tested |
-| Is the provider's authorize URL live? | Request with a fake `client_id` and Composio's redirect URI, then classify the response (rejects unknown app / login wall / renders / blocked / 404) | tested |
+| Is the provider's authorize URL live? | Request with a fake `client_id`, Composio's redirect URI and the toolkit's default scopes, then classify the whole response (rejects unknown app / renders / blocked / 404) | tested |
 | What did the developer portal look like? | Browser agent on public pages only, with screenshots copied to our bucket | tested (observations only) |
 | Was the cited page actually read? | A "sourced" claim keeps its tag only if its URL was read or returned by search during this run | otherwise uncertain |
 | Is the number on the page? | Every number in a sourced claim must appear in the text the agent read at that URL | otherwise uncertain |
@@ -20,7 +20,7 @@ Every guide is checked by plain code, not by the model, before it is saved:
 
 These rules live in `app/guide.py` (`gate`, `apply_links`, `classify_probe`) and are exercised by `uv run python -m app.check`.
 
-## 2. Audit of the shipped library (all five guides, 148 sourced claims)
+## 2. Audit of the shipped library (all five guides, 143 sourced claims)
 
 **Method.** The guides live on the site are saved as `verification/final-*.json`. For every claim tagged sourced, we fetched the cited page with the same Composio tool the agents use and pulled the best-matching passages (`uv run python verification/source_passages.py verification/final-linear.json`). We then read each claim against its page. Where a number, scope or rule mattered, we searched the full page for it. The passages aren't committed because they're copied documentation text; the script regenerates them.
 
@@ -29,11 +29,12 @@ These rules live in `app/guide.py` (`gate`, `apply_links`, `classify_probe`) and
 | Linear | 26 | 13 | 10 | 3 | 0 |
 | Slack | 28 | 11 | 14 | 3 | 0 |
 | HubSpot | 30 | 22 | 6 | 2 | 0 |
-| Gmail | 34 | 17 | 16 | 1 | 0 |
+| Gmail | 29 | 20 | 9 | 0 | 0 |
 | Pipedrive | 30 | 22 | 5 | 3 | 0 |
-| **Total** | **148** | **85 (57%)** | **51 (34%)** | **12 (8%)** | **0** |
+| **Total** | **143** | **88 (62%)** | **44 (31%)** | **11 (8%)** | **0** |
 
 - **No wrong claims remain.** The first pass of this audit found one: Linear's "Configure application details" step told you to "select the required scopes" in the app form. Linear's form has no scope field (its manifest docs list every field); scopes go in the authorization URL, which Composio builds. The cause was our setup prompt, which asked for a scopes value in every provider's form. It now asks only for fields the docs show. The regenerated Linear guide lists the real fields and adds a pitfall, "Scopes configured in authorize URL, not console". The Linear row above is that regenerated guide.
+- **A wrong *tested* claim, found during the code review and fixed:** the Gmail guide said Google's authorize URL "sends visitors to a login page first". Our probe sent no scope, so Google showed an error page at a `/signin/...` path, and the classifier read the path as a login wall. It also scanned only the first 20k characters, missing Google's `invalid_client` text. The probe now sends default scopes and reads the whole page, the login-wall category is gone, and the regenerated guide (the Gmail row above) says correctly that Google rejects an unregistered client. The other four guides' probe results were re-run and are unchanged.
 - **Third-party sources:** four Linear claims cite a third-party setup guide (docs.unified.to). Each matches Linear's own docs, for example default private distribution and the 2–80 character name rule. They're graded "partly supported" because the citation isn't Linear's.
 - **Not on the cited page (12):** mostly plausible absences ("no install cap", "no fee") and consent-screen branding claims cited to a general OAuth page.
 - **Partly supported (47):** the core fact is on the page but a detail isn't, such as a button label, "5 to 10 workspaces" where Slack says "5 or more", or a phrase like "CASA Tier 2".
