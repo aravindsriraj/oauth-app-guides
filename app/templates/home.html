@@ -1,58 +1,71 @@
 {% extends "base.html" %}
 {% block head %}
 <style>
-form.ask { display: flex; gap: 10px; margin: 26px 0 8px; max-width: 640px; }
-form.ask input { flex: 1; font: 17px "Public Sans", sans-serif; padding: 11px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); }
-.running { margin: 14px 0 0; }
-table { width: 100%; border-collapse: collapse; margin-top: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-size: 13.5px; color: var(--ink-3); font-weight: 600; }
-tr:last-child td { border-bottom: 0; }
-td.app a { font-weight: 700; color: var(--ink); text-decoration: none; display: flex; gap: 10px; align-items: center; }
-td.app img { width: 22px; height: 22px; border-radius: 4px; }
-td.app .muted { font-size: 12.5px; }
-.diff { font-weight: 700; } .diff.easy { color: var(--tested); } .diff.medium { color: var(--uncertain); } .diff.hard { color: var(--hard); }
-.flags { color: var(--ink-2); font-size: 14px; }
-@media (max-width: 720px) { th.opt, td.opt { display: none; } form.ask { flex-direction: column; } }
+.hero { margin: 8px 0 30px; }
+.hero h1 { max-width: 19ch; font-size: clamp(32px, 5vw, 46px); }
+.lede { font-size: 17.5px; color: var(--ink-2); max-width: 60ch; margin: 0 0 22px; }
+form.ask { display: flex; gap: 10px; max-width: 700px; }
+form.ask input { flex: 1; min-width: 0; font: 17px "Public Sans", sans-serif; padding: 13px 16px; border: 1px solid var(--line);
+  border-radius: 10px; background: var(--card); color: var(--ink); }
+.try { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 4px; margin-top: 12px; font-size: 14px; color: var(--ink-3); }
+.try form { display: inline; }
+.try button { font: 600 14px "Public Sans", sans-serif; color: var(--sourced); background: none; border: 0; padding: 2px 6px; cursor: pointer; border-radius: 6px; }
+.try button:hover { background: var(--sourced-bg); }
+.running { margin: 16px 0 0; padding: 10px 14px; background: var(--sourced-bg); border-radius: 10px; font-size: 14.5px; max-width: 700px; }
+.how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 0 0 34px; padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.how div { font-size: 14px; color: var(--ink-2); }
+.how b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 2px; }
+.libhead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.libhead .legend { line-height: 1.5; }
+a.row { display: grid; grid-template-columns: 220px 150px 130px 150px minmax(0, 1fr); gap: 14px; align-items: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin-bottom: 8px; color: inherit; text-decoration: none; }
+a.row:hover { border-color: var(--ink-3); }
+.app { display: flex; gap: 10px; align-items: center; font-weight: 700; font-size: 15.5px; min-width: 0; }
+.app img { width: 26px; height: 26px; border-radius: 6px; }
+.t b { display: block; font-size: 15.5px; } .t span { color: var(--ink-3); font-size: 12.5px; }
+.row .level { font-size: 15.5px; }
+.row .none { color: var(--ink-3); font-size: 13.5px; }
+.empty { padding: 26px; text-align: center; color: var(--ink-3); }
+@media (max-width: 900px) {
+  a.row { grid-template-columns: 1fr 1fr; gap: 10px 14px; } .row .app, .row .level, .row .warn, .row .none { grid-column: 1 / -1; }
+  .how { grid-template-columns: 1fr; gap: 10px; }
+}
+@media (max-width: 560px) { form.ask { flex-direction: column; } }
 </style>
 {% endblock %}
 {% block main %}
-<h1>Know what it takes to get your OAuth app approved</h1>
-<p class="lede">Look up an app to see how long setup takes, what can block approval, and which steps an agent can do for you.
-Each guide is researched by agents that read the provider's docs and visit its public developer pages.</p>
+<section class="hero">
+  <h1>Know what it takes to get your OAuth app approved</h1>
+  <p class="lede">How hard it is, how long it takes, what can block approval, and which steps an agent can do for you.
+    Researched live by agents, with every claim marked tested, sourced or uncertain.</p>
+  <form class="ask" method="post" action="/generate">
+    <input name="app" required maxlength="80" placeholder="App name or website, e.g. pipedrive.com" aria-label="App name or website">
+    <button class="btn" type="submit">Research this app</button>
+  </form>
+  {% if try_apps %}<div class="try">Try one we haven't researched:
+    {% for a in try_apps %}<form method="post" action="/generate"><input type="hidden" name="app" value="{{ a }}"><button type="submit">{{ a }}</button></form>{% endfor %}
+  </div>{% endif %}
+  {% if active %}<p class="running">Agents are researching <strong>{{ active }}</strong> right now. <a href="/live/{{ active_slug }}">Watch live</a></p>{% endif %}
+</section>
 
-<form class="ask" method="post" action="/generate">
-  <input name="app" required maxlength="80" placeholder="App name or website, e.g. pipedrive.com" aria-label="App name or website">
-  <button type="submit">Research this app</button>
-</form>
-<p class="muted">A new guide takes 3 to 5 minutes. You'll watch the agents work, then get a link you can share.</p>
-{% if active %}<p class="running">Agents are researching <strong>{{ active }}</strong> now. <a href="/live/{{ active_slug }}">Watch live</a></p>{% endif %}
+<section class="how" aria-label="How it works">
+  <div><b>1. Agents research it</b>Three specialists read the provider's docs and open its developer pages in a real browser, in parallel.</div>
+  <div><b>2. Code checks the evidence</b>A claim whose source the agents didn't actually read is downgraded to uncertain.</div>
+  <div><b>3. You get a shareable guide</b>In 3 to 5 minutes: difficulty, time, steps, approval and pitfalls, with a link to share.</div>
+</section>
 
-<h2>Library</h2>
-<p class="muted">Guides marked audited were checked claim by claim against their sources. The others were generated live by visitors.</p>
-{% if guides %}
-<table>
-  <thead><tr><th>App</th><th>Difficulty</th><th class="opt">Working in development</th><th class="opt">Ready for any customer</th><th class="opt">Watch out for</th></tr></thead>
-  <tbody>
-  {% for g in guides %}
-  <tr>
-    <td class="app"><a href="/guides/{{ g.slug }}">{% if g.logo %}<img src="{{ g.logo }}" alt="">{% endif %}{{ g.app_name }}</a>{% if g.slug in audited %}<span class="muted">Audited</span>{% endif %}</td>
-    <td><span class="diff {{ g.difficulty }}">{{ g.difficulty|capitalize }}</span></td>
-    <td class="opt">{{ g.dev_time.label or g.dev_time.text|truncate(60) }}</td>
-    <td class="opt">{{ g.launch_time.label or g.launch_time.text|truncate(60) }}</td>
-    <td class="opt flags">{{ g.flags|join(", ") or "Nothing major" }}</td>
-  </tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="libhead"><h2>Library</h2>
+  <span class="legend"><span class="badge">Audited</span> checked claim by claim against its sources; the rest were generated live by visitors</span></div>
+{% for g in guides %}
+{% set filled = {"easy": 1, "medium": 2, "hard": 3}[g.difficulty] %}
+<a class="row" href="/guides/{{ g.slug }}">
+  <span class="app">{% if g.logo %}<img src="{{ g.logo }}" alt="">{% endif %}{{ g.app_name }}{% if g.slug in audited %} <span class="badge">Audited</span>{% endif %}</span>
+  <span class="level {{ g.difficulty }}">{{ g.difficulty|capitalize }} <span class="meter" aria-hidden="true">{% for i in range(3) %}<i class="{{ 'on' if i < filled }}"></i>{% endfor %}</span></span>
+  <span class="t"><b>{{ g.dev_time.label or "—" }}</b><span>working for you</span></span>
+  <span class="t"><b>{{ g.launch_time.label or "—" }}</b><span>any customer</span></span>
+  {% if g.flags %}<span class="warn">{% for f in g.flags[:3] %}<span>{{ f }}</span>{% endfor %}</span>{% else %}<span class="none">Nothing major</span>{% endif %}
+</a>
 {% else %}
-<p>No guides yet. Research an app above to create the first one.</p>
-{% endif %}
-
-<h2>How to read a guide</h2>
-<div class="legend">
-  <span><span class="tag tested">Tested</span> our agents or checks saw it happen during research</span>
-  <span><span class="tag sourced">Sourced</span> stated on the linked page</span>
-  <span><span class="tag uncertain">Uncertain</span> inferred or unconfirmed; check before relying on it</span>
-</div>
+<div class="card empty">No guides yet. Research an app above to create the first one.</div>
+{% endfor %}
 {% endblock %}

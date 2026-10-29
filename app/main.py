@@ -4,12 +4,14 @@ import json
 import logging
 import os
 import re
+import time
 from urllib.parse import urlparse
 
 import httpx
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup, escape
 
 from app import pipeline
 from app.guide import claims, resolve, slugify, verdict
@@ -17,12 +19,15 @@ from app.guide import claims, resolve, slugify, verdict
 app = FastAPI()
 T = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 T.env.filters["domain"] = lambda u: urlparse(u).netloc.removeprefix("www.")
+# agents write commands as `hs project upload`; show them as code (escaped first, so nothing else becomes HTML)
+T.env.filters["ticks"] = lambda s: Markup(re.sub(r"`([^`\n]{1,120})`", r"<code>\1</code>", str(escape(s))))
 AUDITED = {"linear", "slack", "hubspot", "gmail", "pipedrive"}  # checked claim by claim, see VERIFICATION.md
 T.env.globals.update(verdict=verdict, claims=claims, audited=AUDITED)
 DAILY_CAP = int(os.environ.get("DAILY_CAP", "30"))
-RUNS: dict[str, dict] = {}   # slug -> {"name", "events", "done", "task"}; one instance, so memory is the truth
+RUNS: dict[str, dict] = {}   # slug -> {"name", "events", "done", "started", "task"}; one instance, so memory is the truth
 ACTIVE: str | None = None    # slug of the one live run allowed at a time
 ORDER = {"easy": 0, "medium": 1, "hard": 2}
+TRY = ["Notion", "Strava", "Zoom", "Asana", "Dropbox", "Calendly"]  # one-click examples on the home page
 
 
 def page(request, template, status=200, **ctx):
@@ -34,7 +39,10 @@ def page(request, template, status=200, **ctx):
 def home(request: Request):
     """The library (easiest first) and the box to research a new app."""
     guides = sorted(pipeline.list_guides(), key=lambda g: (ORDER[g.difficulty], g.app_name.lower()))
-    return page(request, "home.html", guides=guides, active=ACTIVE and RUNS.get(ACTIVE, {}).get("name"), active_slug=ACTIVE)
+    have = {g.slug for g in guides}
+    try_apps = [a for a in TRY if slugify(a) not in have][:3]
+    return page(request, "home.html", guides=guides, try_apps=try_apps,
+                active=ACTIVE and RUNS.get(ACTIVE, {}).get("name"), active_slug=ACTIVE)
 
 
 @app.post("/generate")
@@ -61,7 +69,7 @@ async def generate(request: Request, app_input: str = Form(alias="app")):
         return page(request, "message.html", 429, title="Daily limit reached",
                     text=f"This demo generates up to {DAILY_CAP} new guides a day. The library is still open.")
     ACTIVE = slug
-    run = RUNS[slug] = {"name": name, "events": [], "done": False}
+    run = RUNS[slug] = {"name": name, "events": [], "done": False, "started": int(time.time())}
 
     async def go():
         """The run itself, as a background task so it outlives the request."""
@@ -82,7 +90,7 @@ async def generate(request: Request, app_input: str = Form(alias="app")):
 def live(request: Request, slug: str):
     """The page that shows a run's progress; sends you to the guide if the run already finished."""
     if slug in RUNS:
-        return page(request, "live.html", slug=slug, name=RUNS[slug]["name"])
+        return page(request, "live.html", slug=slug, name=RUNS[slug]["name"], started=RUNS[slug]["started"])
     if pipeline.load_guide(slug):
         return RedirectResponse(f"/guides/{slug}", 303)
     return page(request, "message.html", 404, title="No run here",

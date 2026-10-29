@@ -3,183 +3,203 @@
 {% set agent_steps = g.steps|selectattr("actor", "equalto", "agent")|list %}
 {% set you_steps = g.steps|selectattr("actor", "equalto", "you")|list %}
 {% set uncertain = claims(g)|selectattr("tag", "equalto", "uncertain")|list %}
-{% macro claim(x, label=True) -%}
-<div class="ev {{ x.tag }}">{% if label and x.label %}<strong>{{ x.label }}.</strong> {% endif %}{{ x.text }}
-  <span class="tag {{ x.tag }}">{{ x.tag }}</span>{% if x.source_url %} <span class="src"><a href="{{ x.source_url }}" target="_blank" rel="noopener">{{ x.source_url|domain }}</a></span>{% endif %}</div>
+{% set filled = {"easy": 1, "medium": 2, "hard": 3}[g.difficulty] %}
+{% macro dot(x) -%}<span class="dot {{ x.tag }}" role="img" aria-label="{{ x.tag|capitalize }}" title="{{ x.tag|capitalize }}"></span>{%- endmacro %}
+{% macro source(x) -%}
+  {%- if x.source_url %}<a class="src" href="{{ x.source_url }}" target="_blank" rel="noopener">{{ x.source_url|domain }}</a>
+  {%- elif x.tag == "uncertain" %}<span class="src">not verified</span>{% endif -%}
 {%- endmacro %}
-{% macro copy(value) -%}<button class="quiet copy" type="button" data-copy="{{ value }}">Copy</button>{%- endmacro %}
+{% macro claim(x, label=True) -%}
+<div class="claim">{{ dot(x) }}<div>{% if label and x.label %}<strong>{{ x.label }}.</strong> {% endif %}{{ x.text|ticks }} {{ source(x) }}</div></div>
+{%- endmacro %}
+{% macro panel(id, title, hint) -%}
+<details class="panel" id="{{ id }}"><summary><b>{{ title }}</b><span>{{ hint }}</span></summary><div class="body">{{ caller() }}</div></details>
+{%- endmacro %}
 {% block title %}{{ g.app_name }} OAuth app setup guide{% endblock %}
+{% block actions %}
+  <button class="btn quiet" type="button" data-copy="">Copy link</button>
+  <a class="btn quiet" href="/guides/{{ g.slug }}.md">Markdown</a>
+  {% if g.trace_url %}<a class="btn quiet" href="{{ g.trace_url }}" target="_blank" rel="noopener">Research trace</a>{% endif %}
+{% endblock %}
 {% block head %}
 <style>
-.wrap { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 48px; }
-nav.toc { position: sticky; top: 20px; align-self: start; font-size: 14px; }
-nav.toc a { display: block; color: var(--ink-2); text-decoration: none; padding: 3px 0; }
-nav.toc a:hover { color: var(--ink); }
-.title { display: flex; gap: 14px; align-items: center; }
-.title img { width: 44px; height: 44px; border-radius: 8px; }
-.summary { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 22px 24px; margin: 22px 0 8px; }
-.verdict { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; margin: 0 0 6px; }
-.verdict.easy { color: var(--tested); } .verdict.medium { color: var(--uncertain); } .verdict.hard { color: var(--hard); }
-.times { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; margin: 18px 0 4px; }
-.times h3, .split h3 { margin: 0; font-size: 14px; color: var(--ink-3); font-weight: 600; }
-.span { font-size: 24px; font-weight: 800; letter-spacing: -0.015em; margin: 4px 0 0; }
-.flags { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
-.flags li { border: 1px solid var(--hard); color: var(--hard); border-radius: 6px; padding: 1px 10px; font-size: 14px; font-weight: 600; }
-.split { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
-.split ul { margin: 6px 0 0; padding-left: 18px; }
-ol.steps { list-style: none; counter-reset: s; padding: 0; }
-ol.steps > li { counter-increment: s; position: relative; padding: 4px 0 18px 48px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
-ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 32px; height: 32px; border-radius: 50%;
-  background: var(--ink); color: var(--paper); font-weight: 800; display: grid; place-items: center; }
-.step-head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; }
-.step-head strong { font-size: 17px; }
-.actor { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 0 9px; border: 1px solid var(--line); }
-.actor.agent { border-color: var(--tested); color: var(--tested); }
-table.fields, table.scopes, table.srcs { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 14.5px; }
-table.fields td, table.scopes td, table.scopes th, table.srcs td { border-top: 1px solid var(--line); padding: 7px 8px; vertical-align: top; text-align: left; }
-table.fields td:first-child { width: 30%; color: var(--ink-2); }
-table.fields code { word-break: break-all; }
-table.scopes th { font-size: 13.5px; color: var(--ink-3); font-weight: 600; }
-.review { font-weight: 600; } .review.restricted { color: var(--hard); } .review.review { color: var(--uncertain); } .review.none { color: var(--tested); }
-figure { margin: 12px 0; } figure img { max-width: 100%; border: 1px solid var(--line); border-radius: 6px; }
-figcaption { font-size: 13.5px; color: var(--ink-3); }
-.shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-pre.email { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; white-space: pre-wrap; font: 14.5px/1.55 "Public Sans", sans-serif; }
-pre.code { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; }
-footer.meta { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); }
-.share { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
-@media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } nav.toc { display: none; } .times, .split { grid-template-columns: 1fr; } }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 36px; align-items: start; }
+.title { display: flex; gap: 14px; align-items: center; margin-bottom: 4px; }
+.title img { width: 40px; height: 40px; border-radius: 9px; }
+.title h1 { margin: 0; }
+.meta { color: var(--ink-3); font-size: 13.5px; margin: 0 0 20px; }
+.meta a { color: var(--ink-3); }
+.verdict { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; }
+.verdict details summary { cursor: pointer; color: var(--sourced); font-size: 14px; margin-top: 6px; }
+.verdict details[open] summary { margin-bottom: 4px; }
+.claim { display: flex; gap: 10px; align-items: baseline; padding: 6px 0; font-size: 14.5px; }
+.claim + .claim { border-top: 1px solid var(--soft); }
+.claim .dot { transform: translateY(-1px); }
+.src { font-size: 12.5px; color: var(--ink-3); white-space: nowrap; }
+a.src { text-decoration: none; } a.src:hover { text-decoration: underline; }
+section.steps-block { margin: 26px 0 18px; }
+.steps-sub { color: var(--ink-3); font-size: 14px; margin: 0 0 16px; }
+ol.steps { list-style: none; margin: 0; padding: 0; position: relative; }
+ol.steps::before { content: ""; position: absolute; left: 15px; top: 10px; bottom: 26px; width: 2px; background: var(--line); }
+.step { position: relative; padding: 0 0 24px 50px; }
+.step .n { position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--ink); color: var(--paper);
+  display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+.sh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; min-height: 32px; padding-top: 3px; }
+.sh b { font-size: 16.5px; }
+.who { font-size: 12px; font-weight: 700; border: 1px solid var(--line); border-radius: 10px; padding: 0 9px; color: var(--ink-2); }
+.who.agent { border-color: var(--tested); color: var(--tested); }
+.open { font-size: 13.5px; text-decoration: none; } .open:hover { text-decoration: underline; }
+.step p { margin: 2px 0 10px; color: var(--ink-2); }
+.field { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 9px;
+  padding: 7px 8px 7px 12px; margin: 6px 0; font-size: 14px; max-width: 640px; }
+.field .k { color: var(--ink-3); min-width: 120px; font-size: 13px; }
+.field code, .field .v { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.step .ev { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin: 10px 0; }
+.panel summary { padding: 13px 18px; cursor: pointer; display: flex; justify-content: space-between; gap: 16px; align-items: baseline; list-style: none; }
+.panel summary::-webkit-details-marker { display: none; }
+.panel summary b { font-size: 15.5px; } .panel summary span { color: var(--ink-3); font-size: 13.5px; text-align: right; }
+.panel summary b::before { content: "▸"; display: inline-block; width: 18px; color: var(--ink-3); transition: transform .15s; }
+.panel[open] summary b::before { transform: rotate(90deg); }
+.panel .body { padding: 0 18px 14px; border-top: 1px solid var(--soft); }
+.panel h3 { font-size: 13.5px; color: var(--ink-3); font-weight: 600; margin: 14px 0 4px; }
+table.scopes, table.links { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.scopes td, table.links td { border-top: 1px solid var(--soft); padding: 8px 6px; vertical-align: top; text-align: left; }
+table.scopes td:first-child code { overflow-wrap: anywhere; }
+.review { font-weight: 700; font-size: 13px; white-space: nowrap; }
+.review.restricted { color: var(--hard); } .review.review { color: var(--uncertain); } .review.none { color: var(--tested); } .review.unknown { color: var(--ink-3); }
+.shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 8px 0; }
+.shots figure { margin: 0; } .shots img { width: 100%; border: 1px solid var(--line); border-radius: 8px; display: block; }
+.shots figcaption { font-size: 12px; color: var(--ink-3); margin-top: 4px; overflow-wrap: anywhere; }
+pre.email { background: var(--paper); border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px; white-space: pre-wrap; font: 14px/1.55 "Public Sans", sans-serif; margin: 8px 0; }
+ol.composio { padding-left: 20px; margin: 10px 0; } ol.composio li { margin: 6px 0; }
+pre.code { background: var(--paper); border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; overflow-x: auto; margin: 6px 0; }
+.side { position: sticky; top: 18px; display: grid; gap: 14px; max-height: calc(100vh - 36px); overflow-y: auto; }
+.side h3 { font-size: 13px; color: var(--ink-3); font-weight: 600; margin: 0 0 8px; }
+.side .level { font-size: 30px; }
+.side .why { font-size: 14px; color: var(--ink-2); margin: 8px 0 12px; }
+.time { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-top: 1px solid var(--soft); }
+.time span { color: var(--ink-3); font-size: 13.5px; display: flex; align-items: center; gap: 6px; }
+.time b { font-size: 18px; text-align: right; }
+.side .warn { margin-top: 12px; }
+.checklist { list-style: none; padding: 0; margin: 0; font-size: 14px; }
+.checklist li { padding: 4px 0 4px 24px; position: relative; }
+.checklist li::before { content: ""; position: absolute; left: 0; top: 8px; width: 13px; height: 13px; border: 1.5px solid var(--ink-3); border-radius: 3px; }
+.split { font-size: 14px; color: var(--ink-2); margin: 4px 0; } .split b { color: var(--ink); }
+footer.meta2 { margin-top: 34px; color: var(--ink-3); font-size: 13.5px; }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 20px; } .side { position: static; order: -1; max-height: none; overflow: visible; } .side .prereqs { display: none; } }
+@media (max-width: 560px) { .field { flex-wrap: wrap; } .field .k { min-width: 0; width: 100%; } .panel summary { flex-direction: column; gap: 2px; } .panel summary span { text-align: left; padding-left: 18px; } }
 </style>
 {% endblock %}
 {% block main %}
-<div class="wrap">
-<nav class="toc" aria-label="Sections">
-  <a href="#summary">Summary</a><a href="#own-app">Do you need your own app?</a><a href="#before">Before you start</a>
-  <a href="#steps">Create the app</a><a href="#permissions">Permissions</a><a href="#approval">Getting approved</a>
-  <a href="#pitfalls">Pitfalls</a><a href="#stuck">When you're stuck</a><a href="#composio">Connect to Composio</a><a href="#sources">Sources and gaps</a>
-</nav>
+<div class="layout">
 <article>
-<div class="title">{% if g.logo %}<img src="{{ g.logo }}" alt="">{% endif %}<h1>{{ g.app_name }}: OAuth app setup guide</h1></div>
-<p class="muted">Researched by agents on {{ g.generated_at[:10] }} in {{ g.seconds }} seconds.
-{% if g.trace_url %}<a href="{{ g.trace_url }}" target="_blank" rel="noopener">See every search, page and browser step behind this guide</a>.{% endif %}
-{% if g.slug in audited %}A person also checked each sourced claim against its page (<a href="https://github.com/aravindsriraj/oauth-app-guides/blob/main/VERIFICATION.md" target="_blank" rel="noopener">audit</a>).{% else %}Generated live and not yet checked by a person; the tags still show what the agents could back up.{% endif %}</p>
-<div class="legend"><span><span class="tag tested">Tested</span> seen during research</span><span><span class="tag sourced">Sourced</span> stated on the linked page</span><span><span class="tag uncertain">Uncertain</span> check before relying on it</span></div>
+  <div class="title">{% if g.logo %}<img src="{{ g.logo }}" alt="">{% endif %}<h1>{{ g.app_name }}</h1></div>
+  <p class="meta">OAuth app setup guide, researched by agents on {{ g.generated_at[:10] }} in {{ g.seconds }} seconds.
+    {% if g.slug in audited %}A person also checked each sourced claim against its page (<a href="https://github.com/aravindsriraj/oauth-app-guides/blob/main/VERIFICATION.md" target="_blank" rel="noopener">audit</a>).
+    {% else %}Generated live and not yet checked by a person; the colored dots still show what the agents could back up.{% endif %}</p>
 
-<section id="summary" class="summary">
-  <p class="verdict {{ g.difficulty }}">{{ g.difficulty|capitalize }}</p>
-  <p>{{ g.difficulty_why }}</p>
-  <div class="times">
-    <div><h3>Working for you in development</h3><p class="span">{{ g.dev_time.label }}</p>{{ claim(g.dev_time, False) }}</div>
-    <div><h3>Ready for any customer</h3><p class="span">{{ g.launch_time.label }}</p>{{ claim(g.launch_time, False) }}</div>
+  <div class="verdict"><b>Do you need your own app?</b> {{ verdict(c, g.app_name) }}
+    {% if g.own_app_reasons %}<details><summary>Reasons to have your own ({{ g.own_app_reasons|length }})</summary>
+      {% for x in g.own_app_reasons %}{{ claim(x) }}{% endfor %}</details>{% endif %}
   </div>
-  {% if g.flags %}<ul class="flags" aria-label="Watch out for">{% for f in g.flags %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
-  <div class="split">
-    <div><h3>An agent can do for you</h3><ul>
-      {% for s in agent_steps %}<li>{{ s.label or s.text }}</li>{% endfor %}
-      <li>Create the Composio auth config and run a test connection, given your Composio API key</li>
-      <li>Draft the email to {{ g.app_name }} support (below)</li></ul></div>
-    <div><h3>You take over for</h3><ul>
-      {% for s in you_steps %}<li>{{ s.label or s.text }}</li>{% endfor %}</ul></div>
-  </div>
-</section>
 
-<h2 id="own-app">Do you need your own app?</h2>
-<p>{{ verdict(c, g.app_name) }}</p>
-{% for x in g.own_app_reasons %}{{ claim(x) }}{% endfor %}
+  {% call panel("before", "Before you start", (g.prerequisites|length) ~ " requirements" ~ (" · what our browser saw" if g.observed or g.screenshots else "")) %}
+    {{ claim(g.app_type) }}
+    {% for x in g.prerequisites %}{{ claim(x) }}{% endfor %}
+    {% if g.observed or g.screenshots %}
+    <h3>What our browser saw (public pages only; the agents never sign up or log in)</h3>
+    {% for x in g.observed %}{{ claim(x) }}{% endfor %}
+    {% if g.screenshots %}<div class="shots">{% for s in g.screenshots %}<figure><a href="{{ s.value }}" target="_blank" rel="noopener"><img src="{{ s.value }}" alt="Screenshot of {{ s.label }}" loading="lazy"></a><figcaption>{{ s.label|domain }}{{ s.label.split(s.label|domain, 1)[-1][:50] }}</figcaption></figure>{% endfor %}</div>{% endif %}
+    {% endif %}
+  {% endcall %}
 
-<h2 id="before">Before you start</h2>
-{{ claim(g.app_type) }}
-{% for x in g.prerequisites %}{{ claim(x) }}{% endfor %}
-{% if g.observed or g.screenshots %}
-<h3>What our browser saw</h3>
-<p class="muted">Public pages only: the agents never sign up or log in, so screens behind {{ g.app_name }}'s login aren't shown.</p>
-{% for x in g.observed %}{{ claim(x) }}{% endfor %}
-{% if g.screenshots %}<div class="shots">{% for s in g.screenshots %}<figure><img src="{{ s.value }}" alt="Screenshot of {{ s.label }}" loading="lazy"><figcaption>{{ s.label|domain }}{{ s.label.split(s.label|domain, 1)[-1][:60] }}</figcaption></figure>{% endfor %}</div>{% endif %}
-{% endif %}
+  <section class="steps-block" id="steps">
+    <h2>Create the app</h2>
+    <p class="steps-sub">{{ g.steps|length }} steps, about {{ g.dev_time.label or "an hour" }}.{% if you_steps %} You do {{ "these" if not agent_steps else you_steps|length ~ " of them" }} in {{ g.app_name }}; an agent can't log in for you.{% endif %}</p>
+    <ol class="steps">
+    {% for s in g.steps %}
+      <li class="step"><span class="n">{{ loop.index }}</span>
+        <div class="sh"><b>{{ s.label or "Step " ~ loop.index }}</b><span class="who {{ s.actor }}">{{ "Agent can do this" if s.actor == "agent" else "You" }}</span>
+          {% if s.url %}<a class="open" href="{{ s.url }}" target="_blank" rel="noopener">Open page ↗</a>{% endif %}</div>
+        <p>{{ s.text|ticks }}</p>
+        {% for f in s.fields %}<div class="field"><span class="k">{{ f.label }}</span>
+          {% if f.value.startswith("http") or " " not in f.value %}<code>{{ f.value }}</code><button class="btn quiet" type="button" data-copy="{{ f.value }}">Copy</button>
+          {% else %}<span class="v">{{ f.value }}</span>{% endif %}</div>{% endfor %}
+        <div class="ev">{{ dot(s) }}{{ source(s) }}</div>
+      </li>
+    {% endfor %}
+    </ol>
+  </section>
 
-<h2 id="steps">Create the app</h2>
-<ol class="steps">
-{% for s in g.steps %}
-  <li>
-    <div class="step-head"><strong>{{ s.label or "Step " ~ loop.index }}</strong>
-      <span class="actor {{ s.actor }}">{{ "Agent can do this" if s.actor == "agent" else "You" }}</span>
-      {% if s.url %}<a href="{{ s.url }}" target="_blank" rel="noopener">Open this page</a>{% endif %}</div>
-    {{ claim(s, False) }}
-    {% if s.fields %}<table class="fields">{% for f in s.fields %}<tr><td>{{ f.label }}</td>
-      <td>{% if f.value.startswith("http") or " " not in f.value %}<code>{{ f.value }}</code> {{ copy(f.value) }}{% else %}{{ f.value }}{% endif %}</td></tr>{% endfor %}</table>{% endif %}
-  </li>
-{% endfor %}
-</ol>
-<h2 id="permissions">Permissions</h2>
-{% if g.scopes %}
-<table class="scopes"><thead><tr><th>Scope</th><th>Review</th><th>What it means</th></tr></thead><tbody>
-{% for s in g.scopes %}<tr><td><code>{{ s.label }}</code></td><td><span class="review {{ s.review }}">{{ {"none": "None", "review": "Needs review", "restricted": "Restricted", "unknown": "Unknown"}[s.review] }}</span></td><td>{{ claim(s, False) }}</td></tr>{% endfor %}
-</tbody></table>
-{% else %}<p>The agents found no scope-level review rules.</p>{% endif %}
+  {% call panel("approval", "Getting approved", "Ready for any customer: " ~ (g.launch_time.label or "see details")) %}
+    {% for x in g.approval %}{{ claim(x) }}{% else %}<p class="muted">The agents found nothing on review or approval.</p>{% endfor %}
+  {% endcall %}
 
-<h2 id="approval">Getting approved</h2>
-{% for x in g.approval %}{{ claim(x) }}{% else %}<p>The agents found nothing on review or approval.</p>{% endfor %}
+  {% call panel("pitfalls", "Pitfalls", g.pitfalls|length ~ " to watch for") %}
+    {% for x in g.pitfalls %}{{ claim(x) }}{% else %}<p class="muted">None found.</p>{% endfor %}
+  {% endcall %}
 
-<h2 id="pitfalls">Pitfalls</h2>
-{% for x in g.pitfalls %}{{ claim(x) }}{% endfor %}
+  {% call panel("permissions", "Permissions", g.scopes|length ~ " scopes") %}
+    {% if g.scopes %}<table class="scopes">{% for s in g.scopes %}<tr><td><code>{{ s.label }}</code></td>
+      <td><span class="review {{ s.review }}">{{ {"none": "No review", "review": "Needs review", "restricted": "Restricted", "unknown": "Unknown"}[s.review] }}</span></td>
+      <td>{{ claim(s, False) }}</td></tr>{% endfor %}</table>
+    {% else %}<p class="muted">The agents found no scope-level review rules.</p>{% endif %}
+  {% endcall %}
 
-<h2 id="stuck">When you're stuck</h2>
-{% for x in g.support %}{{ claim(x) }}{% endfor %}
-<h3>Ask {{ g.app_name }} directly</h3>
-<p>Fill in the brackets and send it to {{ g.app_name }}'s developer support.</p>
-<pre class="email"><strong>Subject:</strong> {{ g.email_subject }}
+  {% call panel("stuck", "When you're stuck", "where to get help · a ready-to-send email") %}
+    {% for x in g.support %}{{ claim(x) }}{% endfor %}
+    <h3>Ask {{ g.app_name }} directly: fill in the brackets and send</h3>
+    <pre class="email"><strong>Subject:</strong> {{ g.email_subject }}
 
 {{ g.email_body }}</pre>
-<button class="quiet copy" type="button" data-copy="Subject: {{ g.email_subject }}&#10;&#10;{{ g.email_body }}">Copy email</button>
+    <button class="btn quiet" type="button" data-copy="Subject: {{ g.email_subject }}&#10;&#10;{{ g.email_body }}">Copy email</button>
+  {% endcall %}
 
-<h2 id="composio">Connect it to Composio</h2>
-{% if c and "OAUTH2" in c.auth_modes %}
-{% if c.managed %}<p>You can skip this for now: Composio's managed app for {{ g.app_name }} works today. Do this when you switch to your own app.</p>{% endif %}
-<ol class="steps">
-  <li><div class="step-head"><strong>Create an auth config</strong><span class="actor agent">Agent can do this</span></div>
-    <p>In the Composio dashboard, open Auth Configs and click Create Auth Config. Choose {{ g.app_name }}, pick OAuth2, and paste your Client ID and Client Secret.</p></li>
-  <li><div class="step-head"><strong>Check the redirect URI</strong><span class="actor">You</span></div>
-    <p>{{ g.app_name }}'s app settings must list exactly this URL:</p>
-    <p><code>{{ c.redirect_uri }}</code> {{ copy(c.redirect_uri) }}</p></li>
-  <li><div class="step-head"><strong>Use it in your sessions</strong><span class="actor agent">Agent can do this</span></div>
-    <p>Copy the auth config ID (it starts with <code>ac_</code>) and pass it when you create sessions:</p>
+  {% call panel("composio", "Connect it to Composio", ("optional for now: Composio's app works today" if c and c.managed else "4 steps") if c and "OAUTH2" in c.auth_modes else "not available yet") %}
+    {% if c and "OAUTH2" in c.auth_modes %}
+    <ol class="composio">
+      <li><b>Create an auth config</b> <span class="who agent">Agent can do this</span><br>In the Composio dashboard, open Auth Configs, click Create Auth Config, choose {{ g.app_name }}, pick OAuth2 and paste your Client ID and Client Secret.</li>
+      <li><b>Check the redirect URI</b> <span class="who">You</span><br>{{ g.app_name }}'s app settings must list exactly <code>{{ c.redirect_uri }}</code> <button class="btn quiet" type="button" data-copy="{{ c.redirect_uri }}">Copy</button></li>
+      <li><b>Use it in your sessions</b> <span class="who agent">Agent can do this</span><br>Pass the auth config ID (it starts with <code>ac_</code>) when you create sessions:
 <pre class="code"><code>session = composio.create(
     user_id="user_123",
     auth_configs={"{{ c.toolkit }}": "ac_your_config_id"},
 )</code></pre></li>
-  <li><div class="step-head"><strong>Test the connection</strong><span class="actor">You</span></div>
-    <p>Call <code>session.authorize("{{ c.toolkit }}")</code>, open the link, and connect your own account. The consent screen should show your app's name, not Composio's.</p></li>
-</ol>
-<div class="ev sourced">Steps from Composio's docs <span class="tag sourced">sourced</span> <span class="src"><a href="https://docs.composio.dev/docs/authentication/custom-app-vs-managed-app" target="_blank" rel="noopener">docs.composio.dev</a></span></div>
-{% elif c %}
-<p>Composio connects {{ g.app_name }} with {{ c.auth_modes|join(", ") }}, so there's no OAuth app to plug in. Create an auth config with those credentials instead.</p>
-{% else %}
-<p>Composio has no {{ g.app_name }} toolkit yet, so there's nothing to plug these credentials into today.</p>
-{% endif %}
+      <li><b>Test the connection</b> <span class="who">You</span><br>Call <code>session.authorize("{{ c.toolkit }}")</code>, open the link and connect your own account. The consent screen should show your app's name, not Composio's.</li>
+    </ol>
+    <div class="claim"><span class="dot sourced" role="img" aria-label="Sourced"></span><div>Steps from Composio's docs <a class="src" href="https://docs.composio.dev/docs/authentication/custom-app-vs-managed-app" target="_blank" rel="noopener">docs.composio.dev</a></div></div>
+    {% elif c %}<p>Composio connects {{ g.app_name }} with {{ c.auth_modes|join(", ") }}, so there's no OAuth app to plug in.</p>
+    {% else %}<p>Composio has no {{ g.app_name }} toolkit yet, so there's nothing to plug these credentials into today.</p>{% endif %}
+  {% endcall %}
 
-<h2 id="sources">Sources and gaps</h2>
-<h3>Checked by our own code during research</h3>
-{% for x in g.checks %}{{ claim(x) }}{% endfor %}
-<h3>What we couldn't verify ({{ uncertain|length }})</h3>
-{% for x in uncertain %}<div class="ev uncertain">{% if x.label %}<strong>{{ x.label }}.</strong> {% endif %}{{ x.text }}</div>{% else %}<p>Every claim has a source.</p>{% endfor %}
-<h3>Pages the agents used ({{ g.links|length }})</h3>
-<table class="srcs">{% for u, st in g.links|dictsort %}<tr><td><a href="{{ u }}" target="_blank" rel="noopener">{{ u|domain }}{{ u.split(u|domain, 1)[-1][:70] }}</a></td>
-  <td class="muted">{% if st >= 200 and st < 400 %}Loads{% elif st in (0, 404, 410) %}Broken{% elif st == -1 %}Timed out{% else %}Blocked our automated check ({{ st }}){% endif %}</td></tr>{% endfor %}</table>
+  {% call panel("sources", "Sources and gaps", g.links|length ~ " pages · " ~ uncertain|length ~ " not verified") %}
+    <h3>Checked by our own code during research</h3>
+    {% for x in g.checks %}{{ claim(x) }}{% endfor %}
+    <h3>What we couldn't verify</h3>
+    {% for x in uncertain %}<div class="claim"><span class="dot uncertain" role="img" aria-label="Uncertain"></span><div>{% if x.label %}<strong>{{ x.label }}.</strong> {% endif %}{{ x.text }}</div></div>{% else %}<p class="muted">Every claim has a source.</p>{% endfor %}
+    <h3>Pages the agents used</h3>
+    <table class="links">{% for u, st in g.links|dictsort %}<tr><td><a href="{{ u }}" target="_blank" rel="noopener">{{ u|domain }}{{ u.split(u|domain, 1)[-1][:60] }}</a></td>
+      <td class="muted">{% if st >= 200 and st < 400 %}Loads{% elif st in (0, 404, 410) %}Broken{% elif st == -1 %}Timed out{% else %}Blocked our check ({{ st }}){% endif %}</td></tr>{% endfor %}</table>
+  {% endcall %}
 
-<footer class="meta">
-  <p class="muted">Checked {{ g.generated_at[:10] }}. Providers change their rules; anything marked uncertain deserves a second look before you plan around it.</p>
-  <div class="share">
-    <button type="button" class="copy" data-copy="">Copy link to this guide</button>
-    <a class="btn quiet" href="/guides/{{ g.slug }}.md">Markdown version</a>
-  </div>
-</footer>
+  <footer class="meta2">Checked {{ g.generated_at[:10] }}. Providers change their rules, so anything marked uncertain deserves a second look before you plan around it. <a href="/">Back to the library</a></footer>
 </article>
+
+<aside class="side" aria-label="Summary">
+  <div class="card">
+    <div class="level {{ g.difficulty }}">{{ g.difficulty|capitalize }} <span class="meter" aria-hidden="true">{% for i in range(3) %}<i class="{{ 'on' if i < filled }}"></i>{% endfor %}</span></div>
+    <p class="why">{{ g.difficulty_why }}</p>
+    <div class="time"><span>{{ dot(g.dev_time) }}Working for you</span><b>{{ g.dev_time.label or "—" }}</b></div>
+    <div class="time"><span>{{ dot(g.launch_time) }}Ready for any customer</span><b>{{ g.launch_time.label or "—" }}</b></div>
+    {% if g.flags %}<div class="warn" aria-label="Watch out for">{% for f in g.flags %}<span>{{ f }}</span>{% endfor %}</div>{% endif %}
+  </div>
+  {% if g.prerequisites %}<div class="card prereqs"><h3>Before you start</h3>
+    <ul class="checklist">{% for x in g.prerequisites %}<li>{{ x.label or x.text|truncate(60) }}</li>{% endfor %}</ul></div>{% endif %}
+  <div class="card"><h3>Who does what</h3>
+    <p class="split"><b>You:</b> {{ you_steps|length }} step{{ "s" if you_steps|length != 1 }} in {{ g.app_name }}</p>
+    <p class="split"><b>An agent:</b> {% for s in agent_steps %}{{ s.label or s.text|truncate(40) }}; {% endfor %}the Composio setup and the email to {{ g.app_name }} support</p></div>
+  <div class="card legend"><span class="dot tested"></span>Tested: seen during research<br><span class="dot sourced"></span>Sourced: stated on the linked page<br><span class="dot uncertain"></span>Uncertain: check before relying on it</div>
+</aside>
 </div>
-<script>
-document.querySelectorAll("button.copy").forEach(b => b.addEventListener("click", async () => {
-  const text = b.dataset.copy || location.href, label = b.textContent;
-  try { await navigator.clipboard.writeText(text); b.textContent = "Copied"; } catch { b.textContent = "Copy failed"; }
-  setTimeout(() => b.textContent = label, 1500);
-}));
-</script>
 {% endblock %}

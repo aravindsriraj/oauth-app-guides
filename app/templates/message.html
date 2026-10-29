@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} · OAuth App Guides{% endblock %}
 {% block main %}
-<h1>{{ title }}</h1>
-<p class="lede">{{ text }}</p>
-<p>{% if link %}<a class="btn" href="{{ link }}">{{ link_text }}</a> {% endif %}<a class="btn quiet" href="/">Back to the library</a></p>
+<div class="card" style="max-width:620px;margin:40px auto;padding:28px 30px">
+  <h1 style="font-size:28px">{{ title }}</h1>
+  <p style="color:var(--ink-2);font-size:16.5px">{{ text }}</p>
+  <p style="margin:20px 0 0;display:flex;gap:10px;flex-wrap:wrap">{% if link %}<a class="btn" href="{{ link }}">{{ link_text }}</a>{% endif %}<a class="btn quiet" href="/" style="padding:11px 16px;font-size:15px">Back to the library</a></p>
+</div>
 {% endblock %}

@@ -118,7 +118,9 @@ def _tools(ctx: Ctx, session, who: str):
         ctx.browsed.update(visited)
         for step in [s for s in steps if s.get("screenshotUrl")][-2:]:  # keep the last two for the guide's gallery
             try:
-                ctx.shots[await asyncio.to_thread(ctx.upload, step["screenshotUrl"])] = step.get("url", "")
+                ours = await asyncio.to_thread(ctx.upload, step["screenshotUrl"])
+                ctx.shots[ours] = step.get("url", "")
+                ctx.emit({"kind": "shot", "who": who, "url": ours, "page": step.get("url", "")})  # live page shows it
             except Exception:
                 pass  # a missing screenshot shouldn't fail the research
         return json.dumps({"success": progress.get("isSuccess"), "observed": progress.get("output") or "", "visited": visited})

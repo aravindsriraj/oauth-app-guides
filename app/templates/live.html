@@ -2,54 +2,134 @@
 {% block title %}Researching {{ name }} · OAuth App Guides{% endblock %}
 {% block head %}
 <style>
-.team { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 18px 0 8px; font-size: 15px; }
-.team span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; background: var(--line); }
-.team span.working::before { background: var(--sourced); }
-.team span.finished::before { background: var(--tested); }
-#feed { list-style: none; padding: 0; margin: 20px 0; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
-#feed li { display: grid; grid-template-columns: 150px 1fr; gap: 12px; padding: 7px 14px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
-#feed li:last-child { border-bottom: 0; }
-#feed .who { color: var(--ink-3); }
-#feed .what a { word-break: break-all; }
-#status { font-weight: 600; }
-@media (max-width: 640px) { #feed li { grid-template-columns: 1fr; gap: 0; } }
+.head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.head h1 { margin: 0; }
+.clock { font: 600 14px "JetBrains Mono", monospace; color: var(--ink-2); }
+.lede { color: var(--ink-2); margin: 8px 0 18px; font-size: 15px; }
+.phases { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0 0 22px; }
+.ph { padding: 8px 10px 0 0; border-top: 4px solid var(--line); font-size: 13.5px; color: var(--ink-3); }
+.ph.now { border-color: var(--sourced); color: var(--ink); font-weight: 700; }
+.ph.done { border-color: var(--tested); color: var(--ink); }
+.team { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.agent { min-height: 190px; }
+.agent h2 { font-size: 15.5px; display: flex; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
+.st { font-size: 12px; font-weight: 700; color: var(--ink-3); }
+.st.working { color: var(--sourced); } .st.done { color: var(--tested); }
+.role { font-size: 13px; color: var(--ink-3); margin: 0 0 8px; }
+.now { font-size: 13.5px; color: var(--ink-2); margin: 6px 0; overflow-wrap: anywhere; }
+.count { font-size: 12.5px; color: var(--ink-3); }
+.finds { list-style: none; padding: 0; margin: 6px 0 0; }
+.finds li { display: flex; gap: 8px; align-items: baseline; font-size: 13px; padding: 3px 0; }
+.shot { margin-top: 10px; display: none; }
+.shot img { width: 100%; border: 1px solid var(--line); border-radius: 8px; display: block; }
+.shot span { font-size: 12px; color: var(--ink-3); }
+.strip { margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 16px; }
+.strip h2 { font-size: 13.5px; color: var(--ink-3); font-weight: 600; margin-bottom: 6px; }
+.checks { list-style: none; padding: 0; margin: 0; font-size: 13.5px; }
+.checks li { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; }
+#lead { font-size: 14px; color: var(--ink-2); }
+#status { font-weight: 700; margin: 18px 0 6px; }
+#status a { margin-left: 6px; }
+details.log { margin-top: 10px; }
+details.log summary { cursor: pointer; color: var(--sourced); font-size: 14px; }
+ol#feed { list-style: none; padding: 0; margin: 10px 0 0; font-size: 13.5px; }
+ol#feed li { display: grid; grid-template-columns: 150px 1fr; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--soft); }
+ol#feed .who { color: var(--ink-3); }
+ol#feed a { overflow-wrap: anywhere; }
+@media (max-width: 900px) { .team, .strip { grid-template-columns: 1fr; } .agent { min-height: 0; } }
+@media (max-width: 560px) { .phases { grid-template-columns: repeat(2, 1fr); row-gap: 8px; } ol#feed li { grid-template-columns: 1fr; gap: 0; } }
 </style>
 {% endblock %}
 {% block main %}
-<h1>Researching {{ name }}</h1>
-<p class="lede">Three specialist agents work in parallel: one reads the setup docs, one reads the review and approval rules,
-and one opens {{ name }}'s public developer pages in a real browser. Plain code checks the facts they can't be trusted to judge.</p>
-<div class="team" aria-label="Agents">
-  <span id="t-setup-researcher">Setup researcher</span><span id="t-approval-researcher">Approval researcher</span>
-  <span id="t-portal-explorer">Portal explorer</span><span id="t-orchestrator">Lead writer</span>
+<div class="head"><h1>Researching {{ name }}</h1><span class="clock" id="clock">0:00 · usually 2–5 min</span></div>
+<p class="lede">You can close this tab: the guide still gets saved, and reopening this page picks up where you left off.</p>
+<div class="phases" aria-label="Progress">
+  <div class="ph now" id="p-checks">Plain checks</div><div class="ph" id="p-research">Research, 3 in parallel</div>
+  <div class="ph" id="p-evidence">Evidence check</div><div class="ph" id="p-ready">Guide ready</div>
 </div>
-<p id="status" role="status">Starting…</p>
-<p class="muted">You can close this tab; the guide still gets saved. Reopen this page to pick up where you left off.</p>
-<ol id="feed" aria-live="polite"></ol>
+<div class="team">
+  <section class="card agent" id="setup-researcher"><h2>Setup researcher <span class="st">waiting</span></h2>
+    <p class="role">Reads the docs: app type, steps, what to type</p><div class="now"></div><div class="count"></div><ul class="finds"></ul></section>
+  <section class="card agent" id="approval-researcher"><h2>Approval researcher <span class="st">waiting</span></h2>
+    <p class="role">Review rules, waits, costs, install caps</p><div class="now"></div><div class="count"></div><ul class="finds"></ul></section>
+  <section class="card agent" id="portal-explorer"><h2>Portal explorer <span class="st">waiting</span></h2>
+    <p class="role">Opens the developer pages in a real browser</p><div class="now"></div><div class="count"></div>
+    <div class="shot"><img alt="Latest screenshot from the browser agent"><span></span></div><ul class="finds"></ul></section>
+</div>
+<div class="strip">
+  <section class="card"><h2>Checked by our code</h2><ul class="checks" id="checks"></ul></section>
+  <section class="card"><h2>Lead writer</h2><div id="lead">Briefing the team</div></section>
+</div>
+<p id="status" role="status"></p>
+<details class="log"><summary>Show every step (<span id="n">0</span>)</summary><ol id="feed"></ol></details>
 <script>
-const feed = document.getElementById("feed"), status = document.getElementById("status");
-const mark = (who, state) => { const el = document.getElementById("t-" + who.replaceAll(" ", "-")); if (el && !el.classList.contains("finished")) el.className = state; };
-const src = new EventSource("/live/{{ slug }}/events");
-src.onmessage = (m) => {
-  const e = JSON.parse(m.data);
+const $ = (s, el = document) => el.querySelector(s);
+const started = {{ started }} * 1000, clock = $("#clock");
+const tick = setInterval(() => { const s = Math.max(0, Math.round((Date.now() - started) / 1000));
+  clock.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")} · usually 2–5 min`; }, 1000);
+const phase = (id, state) => { const el = $("#p-" + id); if (!el.classList.contains("done")) el.className = "ph " + state; };
+const card = who => document.getElementById(who.replaceAll(" ", "-"));
+const dot = tag => { const d = document.createElement("span"); d.className = "dot " + tag; d.title = tag; return d; };
+const short = url => { try { const u = new URL(url); return u.host.replace(/^www\./, "") + u.pathname.replace(/\/$/, ""); } catch { return ""; } };
+const counts = {};
+
+function onAgent(el, who, e) {
+  const st = $(".st", el);
+  if (/finished/.test(e.text)) {
+    st.textContent = "done"; st.className = "st done";
+    const rest = e.text.replace(who + " ", ""); $(".now", el).textContent = rest.charAt(0).toUpperCase() + rest.slice(1);
+    if (document.querySelectorAll(".agent .st.done").length === 3) $("#lead").textContent = "Writing the guide from the findings";
+    return;
+  }
+  st.textContent = "working"; st.className = "st working";
+  if (e.tag) {
+    counts[who] = (counts[who] || 0) + 1;
+    $(".count", el).textContent = `${counts[who]} finding${counts[who] === 1 ? "" : "s"} so far`;
+    const li = document.createElement("li"); li.className = "fresh"; li.append(dot(e.tag), e.text.slice(0, 110));
+    const list = $(".finds", el); list.prepend(li); while (list.children.length > 3) list.lastChild.remove();
+  } else {
+    const text = e.text || ""; $(".now", el).textContent = `${text.charAt(0).toUpperCase()}${text.slice(1)} ${short(e.url)}`.trim();
+  }
+}
+
+function onEvent(e) {
+  const who = e.who || "";
+  if (e.kind === "shot") {
+    const box = $("#portal-explorer .shot"); box.style.display = "block";
+    $("img", box).src = e.url; $("span", box).textContent = short(e.page); return;
+  }
   if (e.kind === "done") {
-    status.innerHTML = `${e.text}. <a href="${e.url}">Open the guide</a>`;
+    ["checks", "research", "evidence", "ready"].forEach(p => phase(p, "done")); clearInterval(tick);
+    $("#lead").textContent = "Done";
+    const a = document.createElement("a"); a.href = e.url; a.textContent = "Open the guide";
+    $("#status").replaceChildren(`${e.text}. `, a);
     setTimeout(() => location.assign(e.url), 2500); return;
   }
-  if (e.kind === "error") { status.textContent = e.text; return; }
-  const who = e.who || "";
-  mark(who.replace("lead writer", "orchestrator"), /finished/.test(e.text) ? "finished" : "working");
-  if (who === "orchestrator" && e.text.startsWith("→")) mark(e.text.slice(2).split(":")[0], "working");
-  status.textContent = "Researching…";
-  const li = document.createElement("li"); li.className = "fresh";
-  const w = document.createElement("span"); w.className = "who"; w.textContent = who === "orchestrator" ? "lead writer" : who;
-  const t = document.createElement("span"); t.className = "what";
-  if (e.tag) { const b = document.createElement("span"); b.className = "tag " + e.tag; b.textContent = e.tag; t.append(b, " "); }
-  t.append(e.text + " ");
-  if (e.url && /^https?:/.test(e.url)) { const a = document.createElement("a"); a.href = e.url; a.textContent = new URL(e.url).host + new URL(e.url).pathname; a.target = "_blank"; a.rel = "noopener"; t.append(a); }
-  li.append(w, t); feed.append(li);
-  li.scrollIntoView({block: "nearest"});
-};
+  if (e.kind === "error") { clearInterval(tick); $("#status").textContent = e.text; return; }
+  if (who === "checks") {
+    if (e.text.startsWith("Evidence check")) { phase("research", "done"); phase("evidence", "now"); $("#lead").textContent = "Guide written; code is checking the evidence"; }
+    else if (e.text.startsWith("Link check")) phase("evidence", "done");
+    else { const li = document.createElement("li"); li.append(dot(e.tag || "uncertain"), e.text); $("#checks").append(li); }
+  } else if (who === "orchestrator") {
+    if (e.text.startsWith("→")) { phase("checks", "done"); phase("research", "now");
+      const el = card(e.text.slice(2).split(":")[0].trim()); if (el) { $(".st", el).textContent = "working"; $(".st", el).className = "st working"; }
+      $("#lead").textContent = "Briefed the team; waiting for their findings"; }
+    else if (e.text.startsWith("Assembling")) $("#lead").textContent = "Writing the guide from the findings";
+    else if (e.tag === "uncertain") $("#lead").textContent = e.text;
+  } else if (card(who)) onAgent(card(who), who, e);
+}
+
+function log(e) {
+  const li = document.createElement("li");
+  const w = document.createElement("span"); w.className = "who"; w.textContent = e.who === "orchestrator" ? "lead writer" : (e.who || e.kind);
+  const t = document.createElement("span"); if (e.tag) t.append(dot(e.tag), " ");
+  t.append((e.text || (e.kind === "shot" ? "screenshot saved" : "")) + " ");
+  if (e.url && /^https?:/.test(e.url)) { const a = document.createElement("a"); a.href = e.url; a.textContent = short(e.url); a.target = "_blank"; a.rel = "noopener"; t.append(a); }
+  li.append(w, t); $("#feed").append(li); $("#n").textContent = $("#feed").children.length;
+}
+
+const src = new EventSource("/live/{{ slug }}/events");
+src.onmessage = m => { const e = JSON.parse(m.data); log(e); onEvent(e); };
 src.addEventListener("end", () => src.close());
 </script>
 {% endblock %}
