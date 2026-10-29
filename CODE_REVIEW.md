@@ -17,13 +17,13 @@ Each component was then challenged with run data: was it ever exercised, and wou
 
 | File | Lines | Job | Functions by complexity | Maintainability |
 |---|---|---|---|---|
-| `app/guide.py` | 319 | Guide data model; Composio toolkit lookup; probes; evidence rules | 14 A, 4 B, 2 C (`toolkit_facts`, `downgrade`) | A |
-| `app/pipeline.py` | 234 | One guide run in three steps (plain checks, research, evidence), plus storage and CLI | 10 A, 4 B, 2 C (`research`, `report_findings`) | A |
-| `app/agent.py` | 214 | Composio-backed tools; the four prompts as named constants; `build()` wiring | all A | A |
-| `app/main.py` | 124 | Routes, live progress over SSE, one-run-at-a-time and daily limits | 6 A, 1 C (`generate`, mostly input checks) | A |
-| `app/check.py` | 97 | Assertions for every evidence rule and the probe classifier | A | A |
+| `app/guide.py` | 329 | Guide data model; Composio toolkit lookup; probes and icon picking; evidence rules | 14 A, 5 B, 2 C (`toolkit_facts`, `downgrade`) | A |
+| `app/pipeline.py` | 276 | One guide run in three steps (plain checks, research, evidence), plus storage, icons and CLI | 13 A, 5 B, 2 C (`research`, `report_findings`) | A |
+| `app/agent.py` | 221 | Composio-backed tools; the four prompts as named constants; `build()` wiring | all A | A |
+| `app/main.py` | 138 | Routes, live progress over SSE, one-run-at-a-time and daily limits | 6 A, 1 B | A |
+| `app/check.py` | 112 | Assertions for every evidence rule, the probe classifier and icon picking | A | A |
 
-Overall: average A (3.7), nothing worse than C, pyflakes clean. 48 of 55 functions have docstrings. The other 7 are named for exactly what they do (`health`, `save_guide`, `load_guide`) or are nested helpers of 2–8 lines. The longest function is `_tools` (78 lines): it defines the three tools, and each tool has its own docstring.
+Overall: average A (3.9), nothing worse than C, pyflakes clean. 53 of 60 functions have docstrings. The other 7 are named for exactly what they do (`health`, `save_guide`, `load_guide`) or are nested helpers of 2–8 lines. The longest function is `_tools` (78 lines): it defines the three tools, and each tool has its own docstring.
 
 ## Where each component comes from
 

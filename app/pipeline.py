@@ -62,6 +62,12 @@ def upload_shot(src: str, slug: str) -> str:
     return save_image(src, f"shots/{slug}/{uuid.uuid4().hex[:8]}.png")
 
 
+def icon_pages(website: str, guide: Guide) -> list[str]:
+    """Where to look for an app's icon: its website, then the site of the first setup step (usually the developer portal)."""
+    portal = next((f"{urlparse(s.url).scheme}://{urlparse(s.url).netloc}" for s in guide.steps if s.url), "")
+    return list(dict.fromkeys(u for u in (website, portal) if u))
+
+
 async def icon_for(pages: list[str], slug: str) -> str:
     """For an app Composio has no logo for: the icon its own site declares, copied into our bucket. Empty if none."""
     async with httpx.AsyncClient(timeout=10, follow_redirects=True, headers=UA) as client:
@@ -132,9 +138,7 @@ async def run(app_input: str, emit, facts: dict | None) -> Guide | None:
                   checks=checks, observed=observed, model=MODEL,
                   screenshots=[Entry(label=page, value=ours) for ours, page in ctx.shots.items()])
     await enforce_evidence(guide, ctx, line)
-    if not guide.logo:  # Composio has no toolkit, so no logo: use the site's own icon (or its developer portal's)
-        portal = next((f"{urlparse(s.url).scheme}://{urlparse(s.url).netloc}" for s in guide.steps if s.url), "")
-        guide.logo = await icon_for([u for u in (website, portal) if u], slug)
+    guide.logo = guide.logo or await icon_for(icon_pages(website, guide), slug)  # no Composio logo: the site's own icon
     guide.generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     guide.seconds = int(time.time() - t0)
     guide.trace_url = await asyncio.to_thread(share_trace, run_id)

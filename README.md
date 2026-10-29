@@ -116,4 +116,4 @@ app/templates/    pages and the Markdown version
 verification/     audited guides and first-audit grades; source_passages.py (audit helper); regate.py (re-runs the evidence rules on saved guides)
 ```
 
-About 1,000 lines of Python in five files. Complexity (radon) averages A (3.7); nothing is worse than C, and every module scores A for maintainability. [CODE_REVIEW.md](CODE_REVIEW.md) walks through each module and each component, what was cut, and why the rest stays.
+About 1,080 lines of Python in five files. Complexity (radon) averages A (3.9); nothing is worse than C, and every module scores A for maintainability. [CODE_REVIEW.md](CODE_REVIEW.md) walks through each module and each component, what was cut, and why the rest stays.
