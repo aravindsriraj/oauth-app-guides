@@ -167,8 +167,6 @@ def classify_probe(status: int, final_url: str, body: str) -> str:
     text = re.sub(r"<[^>]+>", " ", body)  # the whole page: Google puts its error text after ~20k chars of script
     if re.search(r"invalid[_ ]client|client (id )?(was )?not found|unknown client|unauthorized[_ ]client|unauthorized access|invalid client_id", text, re.I):
         return "rejects_fake_client"
-    if status in (404, 410):
-        return "not_found"
     if status in (403, 429, 999) or re.search(r"captcha|cloudflare|access denied", text, re.I):
         return "blocked"
     if status in (400, 401):
@@ -179,9 +177,8 @@ def classify_probe(status: int, final_url: str, body: str) -> str:
 PROBE_TEXT = {
     "rejects_fake_client": "Authorize URL is live and rejects an unregistered client_id, so you need a real registered app",
     "responds": "Authorize URL is live (it renders a page; we couldn't confirm how it treats unknown apps)",
-    "not_found": "Authorize URL returned 404; the OAuth endpoint may have moved",
     "blocked": "Authorize URL blocked our automated check (bot protection)",
-    "error": "Authorize URL returned an error we couldn't classify",
+    "error": "Authorize URL returned an error (it may have moved); check it before relying on it",
 }
 
 

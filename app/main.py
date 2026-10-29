@@ -99,20 +99,17 @@ async def events(request: Request, slug: str):
     start = int(request.headers.get("last-event-id", "-1")) + 1  # EventSource resends this on reconnect
 
     async def stream():
-        """Replay from where the browser left off, ping every 15s so proxies keep the connection, end when the run does."""
-        i, idle = start, 0.0
+        """Replay from where the browser left off, then send new lines until the run ends. If the connection drops,
+        the browser reconnects with Last-Event-ID and nothing is lost."""
+        i = start
         while True:
             while i < len(run["events"]):
                 yield f"id: {i}\ndata: {json.dumps(run['events'][i])}\n\n"
-                i, idle = i + 1, 0.0
+                i += 1
             if run["done"]:
                 yield "event: end\ndata: {}\n\n"
                 return
             await asyncio.sleep(0.5)
-            idle += 0.5
-            if idle >= 15:
-                yield ": ping\n\n"
-                idle = 0.0
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 

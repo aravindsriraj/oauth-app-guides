@@ -12,7 +12,7 @@ assert slugify("Google Sheets!") == "google-sheets"
 assert classify_probe(200, "https://accounts.google.com/signin/oauth/error?authError=x", "Error 401: invalid_client") == "rejects_fake_client"
 assert classify_probe(401, "https://oauth.pipedrive.com/oauth/authorize", '{"error":"unauthorized access"}') == "rejects_fake_client"
 assert classify_probe(200, "https://linear.app/oauth/authorize?client_id=x", "Linear Loading…") == "responds"
-assert classify_probe(404, "https://x.com/oauth", "Not Found") == "not_found"
+assert classify_probe(404, "https://x.com/oauth", "Not Found") == "error"  # a dead endpoint is just an error we report
 assert classify_probe(403, "https://x.com/oauth", "Attention Required! | Cloudflare") == "blocked"
 # Google's error page lives under /signin/: an error we can't read is "responds", never a login wall
 assert classify_probe(200, "https://accounts.google.com/signin/oauth/error", "<script>" + "x" * 30000 + "</script>Error 401: invalid_client") == "rejects_fake_client"
