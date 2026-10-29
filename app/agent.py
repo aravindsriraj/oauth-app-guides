@@ -9,15 +9,19 @@ from typing import Callable
 import httpx
 from composio import Composio, SESSION_PRESET_DIRECT_TOOLS
 from deepagents import create_deep_agent
-from langchain.agents.middleware import ModelCallLimitMiddleware, ToolCallLimitMiddleware
+from langchain.agents.middleware import ModelCallLimitMiddleware, ModelRetryMiddleware, ToolCallLimitMiddleware
 from langchain.agents.structured_output import ToolStrategy
 from langchain_core.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai.chat_models import GoogleInvalidRequestError
 
 from app.guide import BROKEN, ApprovalFindings, Claim, GuideDraft, PortalFindings, SetupFindings, check_links
 
 MODEL = os.environ.get("MODEL", "gemini-3.8-flash")  # won a Flash-vs-Pro comparison on Gmail (VERIFICATION.md)
 PAGE_CHARS = 12000  # how much of a page an agent sees, and what the evidence gate checks against
+# Gemini occasionally rejects a valid call with 400 INVALID_ARGUMENT; the same call then succeeds. Retry it,
+# and if it keeps failing let that agent continue with an error note instead of killing the whole run.
+RETRY = ModelRetryMiddleware(max_retries=2, retry_on=(GoogleInvalidRequestError,), on_failure="continue")
 
 
 @dataclass
@@ -198,17 +202,17 @@ def build(ctx: Ctx):
         {"name": "setup-researcher", "model": model,
          "description": "Finds from official docs how to create an OAuth app on {app}: app type, console URL, ordered steps with field values, prerequisites, pitfalls, support.".format(app=ctx.name),
          "system_prompt": prompt(SETUP) + BUDGET, "tools": [s_search, s_read],
-         "response_format": ToolStrategy(SetupFindings), "middleware": [ModelCallLimitMiddleware(run_limit=12)]},
+         "response_format": ToolStrategy(SetupFindings), "middleware": [RETRY, ModelCallLimitMiddleware(run_limit=12)]},
         {"name": "approval-researcher", "model": model,
          "description": "Finds what it takes for a {app} OAuth app to be usable by any customer: which scopes trigger review, review process, waits, costs, rejection reasons, limits before approval.".format(app=ctx.name),
          "system_prompt": prompt(APPROVAL) + BUDGET, "tools": [a_search, a_read],
-         "response_format": ToolStrategy(ApprovalFindings), "middleware": [ModelCallLimitMiddleware(run_limit=12)]},
+         "response_format": ToolStrategy(ApprovalFindings), "middleware": [RETRY, ModelCallLimitMiddleware(run_limit=12)]},
         {"name": "portal-explorer", "model": model,
          "description": "Uses a real browser on {app}'s public developer pages: is signup self-serve, is a credit card or paid plan needed, where app creation starts; takes screenshots.".format(app=ctx.name),
          "system_prompt": prompt(PORTAL), "tools": [p_browse],
          "response_format": ToolStrategy(PortalFindings),  # each browse can take 90s, so cap them
-         "middleware": [ModelCallLimitMiddleware(run_limit=6), ToolCallLimitMiddleware(tool_name="browse", run_limit=3)]},
+         "middleware": [RETRY, ModelCallLimitMiddleware(run_limit=6), ToolCallLimitMiddleware(tool_name="browse", run_limit=3)]},
     ]
     return create_deep_agent(model=model, system_prompt=prompt(LEAD), subagents=subagents,
                              response_format=ToolStrategy(GuideDraft),
-                             middleware=[ModelCallLimitMiddleware(run_limit=8)], name="oauth-guide")
+                             middleware=[RETRY, ModelCallLimitMiddleware(run_limit=8)], name="oauth-guide")

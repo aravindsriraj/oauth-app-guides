@@ -1,6 +1,7 @@
 """Web app: library, live generation over SSE, and shareable guide pages."""
 import asyncio
 import json
+import logging
 import os
 import re
 from urllib.parse import urlparse
@@ -65,6 +66,7 @@ async def generate(request: Request, app_input: str = Form(alias="app")):
         try:
             await pipeline.run(query, run["events"].append, facts)
         except Exception as e:  # the page must always learn the run ended
+            logging.exception("guide run for %s failed", name)
             run["events"].append({"kind": "error", "text": f"The run failed ({type(e).__name__}). Try again in a minute."})
         finally:
             run["done"], ACTIVE = True, None
