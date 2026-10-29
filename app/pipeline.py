@@ -23,6 +23,7 @@ _bucket = None
 
 
 def bucket():
+    """The guides bucket, created on first use so importing this module needs no cloud credentials."""
     global _bucket
     if _bucket is None:
         _bucket = storage.Client(project=os.environ.get("GOOGLE_CLOUD_PROJECT")).bucket(os.environ["BUCKET"])
@@ -63,6 +64,7 @@ def take_daily_slot(cap: int) -> bool:
 # ---------- the run ----------
 
 def share_trace(run_id: uuid.UUID) -> str:
+    """Make the run's LangSmith trace public and return its link; empty if tracing is off or sharing fails."""
     try:
         wait_for_all_tracers()
         # ponytail: share_run is deprecated (removed after Jan 2027); runs.share.create needs session + trace ids
@@ -77,20 +79,21 @@ COMPOSIO_DOCS = "https://docs.composio.dev/toolkits/managed-auth"
 async def run(app_input: str, emit, facts: dict | None) -> Guide | None:
     """facts: the Composio toolkit details from resolve(), or None if Composio has no toolkit for this app."""
     t0 = time.time()
+    # one progress line on the live page
     line = lambda text, tag="", url="", who="checks": emit({"kind": "line", "who": who, "text": text, "tag": tag, "url": url})
-    c = facts or {}
-    name = c.get("name") or app_input.strip()
-    slug = slugify(c.get("toolkit") or name)
+    toolkit = facts or {}
+    name = toolkit.get("name") or app_input.strip()
+    slug = slugify(toolkit.get("toolkit") or name)
 
     checks, website = await plain_checks(app_input, name, facts, line)
-    ctx = Ctx(name=name, facts=c, checks=checks, emit=emit, upload=lambda u: upload_shot(u, slug))
-    ctx.seen.update({u: "" for u in [website, c.get("authorize_url", ""), COMPOSIO_DOCS] if u})
+    ctx = Ctx(name=name, facts=toolkit, checks=checks, emit=emit, upload=lambda u: upload_shot(u, slug))
+    ctx.seen.update({u: "" for u in [website, toolkit.get("authorize_url", ""), COMPOSIO_DOCS] if u})
     draft, observed, run_id = await research(build(ctx), name, line)
     if draft is None:
         emit({"kind": "error", "text": "The agents did not produce a guide. Try again in a minute."})
         return None
 
-    guide = Guide(**draft.model_dump(), slug=slug, app_name=name, website=website, logo=c.get("logo", ""), composio=c,
+    guide = Guide(**draft.model_dump(), slug=slug, app_name=name, website=website, logo=toolkit.get("logo", ""), composio=toolkit,
                   checks=checks, observed=observed, model=MODEL,
                   screenshots=[Entry(label=page, value=ours) for ours, page in ctx.shots.items()])
     await enforce_evidence(guide, ctx, line)
@@ -159,13 +162,13 @@ async def research(agent, name: str, line) -> tuple[GuideDraft | None, list[Clai
                                                   config=config, stream_mode="updates", subgraphs=True):
                 if ns:  # inside a specialist; its tools report their own progress
                     continue
-                for val in (update or {}).values():
-                    if not isinstance(val, dict):
+                for changed in (update or {}).values():  # each update maps a graph node to the state it changed
+                    if not isinstance(changed, dict):
                         continue
-                    if val.get("structured_response") is not None:
-                        draft = val["structured_response"]
-                    for m in val.get("messages") or []:
-                        observed += on_message(m, task_names, line)
+                    if changed.get("structured_response") is not None:
+                        draft = changed["structured_response"]
+                    for message in changed.get("messages") or []:
+                        observed += on_message(message, task_names, line)
     except TimeoutError:
         line("Research ran out of time", "uncertain", who="orchestrator")
     if isinstance(draft, dict):
@@ -173,23 +176,23 @@ async def research(agent, name: str, line) -> tuple[GuideDraft | None, list[Clai
     return draft, observed, run_id
 
 
-def on_message(m, task_names: dict[str, str], line) -> list[Claim]:
+def on_message(message, task_names: dict[str, str], line) -> list[Claim]:
     """Report the lead writer's briefs and each specialist's findings. Returns the browser observations, if any."""
-    for tc in getattr(m, "tool_calls", None) or []:
-        if tc["name"] == "task":
-            who = tc["args"].get("subagent_type", "specialist").replace("-", " ")
-            task_names[tc["id"]] = who
-            line(f"→ {who}: {tc['args'].get('description', '')[:160]}", who="orchestrator")
-        elif tc["name"] == "GuideDraft":
+    for call in getattr(message, "tool_calls", None) or []:  # the lead writer briefing a specialist, or writing the guide
+        if call["name"] == "task":
+            who = call["args"].get("subagent_type", "specialist").replace("-", " ")
+            task_names[call["id"]] = who
+            line(f"→ {who}: {call['args'].get('description', '')[:160]}", who="orchestrator")
+        elif call["name"] == "GuideDraft":
             line("Assembling the guide", who="orchestrator")
-    if getattr(m, "type", "") != "tool" or getattr(m, "name", "") != "task":
+    if getattr(message, "type", "") != "tool" or getattr(message, "name", "") != "task":
         return []
-    who = task_names.get(m.tool_call_id, "specialist")
-    data = report_findings(who, str(m.content), line)
+    who = task_names.get(message.tool_call_id, "specialist")  # a specialist's result coming back
+    data = report_findings(who, str(message.content), line)
     observed = []
-    for o in data.get("observations", []) if who == "portal explorer" else []:
+    for item in data.get("observations", []) if who == "portal explorer" else []:
         try:
-            observed.append(Claim.model_validate(o))
+            observed.append(Claim.model_validate(item))
         except ValueError:  # skip a malformed observation rather than lose the run
             pass
     return observed
@@ -202,16 +205,16 @@ def report_findings(who: str, content: str, line):
     except ValueError:
         line(f"{who} finished (no structured result)", "uncertain", who=who)
         return {}
-    items = []
-    for v in data.values():
-        if isinstance(v, dict) and "tag" in v:
-            items.append(v)
-        elif isinstance(v, list):
-            items += [x for x in v if isinstance(x, dict) and "tag" in x]
-    for x in items:
-        text = (f"{x['label']}: " if x.get("label") else "") + x.get("text", "")[:140]
-        line(text, x.get("tag", ""), x.get("source_url", ""), who=who)
-    line(f"{who} finished: {len(items)} findings", who=who)
+    found = []  # every claim in the result, whether a single field or a list
+    for value in data.values():
+        if isinstance(value, dict) and "tag" in value:
+            found.append(value)
+        elif isinstance(value, list):
+            found += [item for item in value if isinstance(item, dict) and "tag" in item]
+    for item in found:
+        text = (f"{item['label']}: " if item.get("label") else "") + item.get("text", "")[:140]
+        line(text, item.get("tag", ""), item.get("source_url", ""), who=who)
+    line(f"{who} finished: {len(found)} findings", who=who)
     return data
 
 

@@ -1,4 +1,4 @@
-"""The research team: an orchestrator plus three specialists, all using Composio tools."""
+"""The research team: a lead writer (the orchestrator) and three specialists, all researching through Composio tools."""
 import asyncio
 import json
 import os
@@ -17,7 +17,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from app.guide import BROKEN, ApprovalFindings, Claim, GuideDraft, PortalFindings, SetupFindings, check_links
 
 MODEL = os.environ.get("MODEL", "gemini-3.8-flash")  # won a Flash-vs-Pro comparison on Gmail (VERIFICATION.md)
-PAGE_CHARS = 12000
+PAGE_CHARS = 12000  # how much of a page an agent sees, and what the evidence gate checks against
 
 
 @dataclass
@@ -45,26 +45,27 @@ def _tools(ctx: Ctx, session, who: str):
     """Tools are built per specialist so every progress line says who is working."""
     say = lambda text, url="": ctx.emit({"kind": "line", "who": who, "text": text, "url": url})
 
-    async def run(slug, args):
-        r = await asyncio.to_thread(session.execute, slug, arguments=args)
-        if r.error:
-            raise RuntimeError(str(r.error)[:300])
-        return r.data or {}
+    async def call_tool(slug, args):
+        """Run one Composio tool through the session (the SDK is synchronous, so off the event loop)."""
+        result = await asyncio.to_thread(session.execute, slug, arguments=args)
+        if result.error:
+            raise RuntimeError(str(result.error)[:300])
+        return result.data or {}
 
     @tool
     async def web_search(query: str) -> str:
         """Search the web. Returns result URLs with snippets. The 'summary' is a lead, never a citable source."""
         say(f"searching “{query}”")
         try:
-            d = await run("COMPOSIO_SEARCH_WEB", {"query": query})
+            found = await call_tool("COMPOSIO_SEARCH_WEB", {"query": query})
         except Exception as e:
             return f"search failed: {e}"
         results = [{"url": c.get("url", ""), "title": c.get("title", ""), "snippet": (c.get("snippet") or "")[:300]}
-                   for c in d.get("citations") or []]
-        for r in results:
+                   for c in found.get("citations") or []]
+        for r in results:  # a cited result counts as seen, with its snippet as the text the agent saw
             if r["url"]:
                 ctx.seen[r["url"]] = ctx.seen.get(r["url"], "") + " " + r["snippet"]
-        return json.dumps({"summary": (d.get("answer") or "")[:1500], "results": results})
+        return json.dumps({"summary": (found.get("answer") or "")[:1500], "results": results})
 
     @tool
     async def read_page(url: str) -> str:
@@ -75,8 +76,8 @@ def _tools(ctx: Ctx, session, who: str):
         if status in BROKEN:  # the fetch tool can serve a cached copy of a page that no longer exists
             return f"{url} no longer exists (HTTP {status}). Find the current page instead."
         try:
-            d = await run("COMPOSIO_SEARCH_FETCH_URL_CONTENT", {"urls": [url]})
-            text = (d.get("results") or [{}])[0].get("text") or ""
+            fetched = await call_tool("COMPOSIO_SEARCH_FETCH_URL_CONTENT", {"urls": [url]})
+            text = (fetched.get("results") or [{}])[0].get("text") or ""
         except Exception as e:
             return f"could not read {url}: {e}"
         if not text.strip():
@@ -92,29 +93,30 @@ def _tools(ctx: Ctx, session, who: str):
         safety = ("Rules: only look at public pages. Never sign up, log in, submit forms or enter any data. "
                   "Stop when you reach a login or signup form and report what it asks for. Task: ")
         try:
-            d = await run("BROWSER_TOOL_CREATE_TASK", {"task": safety + task, "startUrl": start_url})
-            tid, steps, deadline = d["watch_task_id"], [], time.monotonic() + 90
+            created = await call_tool("BROWSER_TOOL_CREATE_TASK", {"task": safety + task, "startUrl": start_url})
+            task_id, steps, deadline = created["watch_task_id"], [], time.monotonic() + 90
+            # poll every 3s until the browser task ends, reporting each new step; stop it after 90s
             while time.monotonic() < deadline:
                 await asyncio.sleep(3)
-                w = await run("BROWSER_TOOL_WATCH_TASK", {"taskId": tid})
-                for s in (w.get("steps") or [])[len(steps):]:
-                    say(f"browser step {s.get('number', len(steps) + 1)}", s.get("url", ""))
-                steps = w.get("steps") or steps
-                if str(w.get("status", "")).lower() in ("finished", "failed", "stopped"):
+                progress = await call_tool("BROWSER_TOOL_WATCH_TASK", {"taskId": task_id})
+                for step in (progress.get("steps") or [])[len(steps):]:
+                    say(f"browser step {step.get('number', len(steps) + 1)}", step.get("url", ""))
+                steps = progress.get("steps") or steps
+                if str(progress.get("status", "")).lower() in ("finished", "failed", "stopped"):
                     break
             else:
-                await run("BROWSER_TOOL_STOP_TASK", {"taskId": tid})
-                w["output"] = (w.get("output") or "") + " (stopped after 90s)"
+                await call_tool("BROWSER_TOOL_STOP_TASK", {"taskId": task_id})
+                progress["output"] = (progress.get("output") or "") + " (stopped after 90s)"
         except Exception as e:
             return f"browser failed: {e}"
-        visited = sorted({s["url"] for s in steps if s.get("url")})
+        visited = sorted({step["url"] for step in steps if step.get("url")})
         ctx.browsed.update(visited)
-        for s in [s for s in steps if s.get("screenshotUrl")][-2:]:  # keep the last two for the guide's gallery
+        for step in [s for s in steps if s.get("screenshotUrl")][-2:]:  # keep the last two for the guide's gallery
             try:
-                ctx.shots[await asyncio.to_thread(ctx.upload, s["screenshotUrl"])] = s.get("url", "")
+                ctx.shots[await asyncio.to_thread(ctx.upload, step["screenshotUrl"])] = step.get("url", "")
             except Exception:
                 pass  # a missing screenshot shouldn't fail the research
-        return json.dumps({"success": w.get("isSuccess"), "observed": w.get("output") or "", "visited": visited})
+        return json.dumps({"success": progress.get("isSuccess"), "observed": progress.get("output") or "", "visited": visited})
 
     return web_search, read_page, browse
 

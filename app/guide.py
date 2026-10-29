@@ -97,6 +97,7 @@ SKIP_LABELS = {"www", "app", "api", "developer", "developers", "docs", "com", "i
 
 
 def query_for(app_input: str) -> str:
+    """The search term for Composio's toolkit search: a name as typed, or the brand label of a URL (app.hubspot.com -> hubspot)."""
     s = app_input.strip().lower()
     if "/" in s or ("." in s and " " not in s):
         host = urlparse(s if "//" in s else "//" + s).hostname or s
@@ -108,19 +109,20 @@ def query_for(app_input: str) -> str:
 
 
 def slugify(s: str) -> str:
+    """URL-safe id for a guide: "Google Sheets" -> "google-sheets"."""
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
-def toolkit_facts(d: dict) -> dict:
+def toolkit_facts(toolkit: dict) -> dict:
     """Composio toolkit details -> the ground truth the guide and agents rely on."""
-    configs = d.get("auth_config_details") or []
+    configs = toolkit.get("auth_config_details") or []
     oauth = next((a for a in configs if a.get("mode") == "OAUTH2"), {})
     defaults = {f["name"]: f.get("default") or "" for f in oauth.get("fields", {}).get("auth_config_creation", {}).get("optional", [])}
     provider = oauth.get("deprecated_auth_provider_details") or {}
-    meta = d.get("meta") or {}
+    meta = toolkit.get("meta") or {}
     return {
-        "toolkit": d["slug"], "name": d.get("name", d["slug"]), "auth_modes": [a.get("mode") for a in configs],
-        "managed": "OAUTH2" in (d.get("composio_managed_auth_schemes") or []),
+        "toolkit": toolkit["slug"], "name": toolkit.get("name", toolkit["slug"]), "auth_modes": [a.get("mode") for a in configs],
+        "managed": "OAUTH2" in (toolkit.get("composio_managed_auth_schemes") or []),
         "redirect_uri": defaults.get("oauth_redirect_uri", ""),
         "default_scopes": [x for x in defaults.get("scopes", "").split(",") if x],
         "authorize_url": provider.get("authorization_url", ""), "token_url": provider.get("token_url", ""),
@@ -147,12 +149,13 @@ async def resolve(app_input: str, client: httpx.AsyncClient) -> dict | None:
     return toolkit_facts(r.json()) if r.is_success else None
 
 
-def verdict(c: dict, app_name: str) -> str:
-    if not c:
+def verdict(facts: dict, app_name: str) -> str:
+    """The answer to "Do you need your own app?", decided from Composio's facts rather than by the model."""
+    if not facts:
         return f"Composio has no toolkit for {app_name} yet, so there is no managed app to fall back on."
-    if "OAUTH2" not in c["auth_modes"]:
-        return f"Composio connects {app_name} with {', '.join(c['auth_modes']) or 'no auth'}, not OAuth, so no OAuth app is needed."
-    if c["managed"]:
+    if "OAUTH2" not in facts["auth_modes"]:
+        return f"Composio connects {app_name} with {', '.join(facts['auth_modes']) or 'no auth'}, not OAuth, so no OAuth app is needed."
+    if facts["managed"]:
         return f"No, not to get started: Composio provides an OAuth app for {app_name}, so users can connect today. You need your own app for the reasons below."
     return f"Yes: Composio doesn't provide an OAuth app for {app_name}. You must create one before any user can connect."
 
@@ -160,6 +163,7 @@ def verdict(c: dict, app_name: str) -> str:
 # ---------- probes (plain HTTP, our own code) ----------
 
 def classify_probe(status: int, final_url: str, body: str) -> str:
+    """What the authorize URL did with our made-up client_id: one of the PROBE_TEXT keys."""
     text = re.sub(r"<[^>]+>", " ", body[:20000])
     if re.search(r"invalid[_ ]client|client (id )?(was )?not found|unknown client|unauthorized[_ ]client|unauthorized access|invalid client_id", text, re.I):
         return "rejects_fake_client"
@@ -184,14 +188,17 @@ PROBE_TEXT = {
 }
 
 
-async def probe_authorize(c: dict, client: httpx.AsyncClient) -> str:
+async def probe_authorize(facts: dict, client: httpx.AsyncClient) -> str:
     """Call the provider's authorize URL with a made-up client_id and classify the response."""
-    params = {"client_id": "composio-guide-probe", "redirect_uri": c["redirect_uri"], "response_type": "code"}
+    params = {"client_id": "composio-guide-probe", "redirect_uri": facts["redirect_uri"], "response_type": "code"}
     try:
-        r = await client.get(c["authorize_url"], params=params, follow_redirects=True, timeout=10, headers=UA)
+        r = await client.get(facts["authorize_url"], params=params, follow_redirects=True, timeout=10, headers=UA)
         return classify_probe(r.status_code, str(r.url), r.text)
     except httpx.HTTPError:
         return "error"
+
+
+BROKEN = {0, 404, 410}  # statuses check_links reports for a page that is gone; 403/429 only mean we were blocked
 
 
 async def check_links(urls: set[str], client: httpx.AsyncClient) -> dict[str, int]:
@@ -212,16 +219,18 @@ async def check_links(urls: set[str], client: httpx.AsyncClient) -> dict[str, in
 # ---------- evidence gate ----------
 
 def norm(u: str) -> str:
+    """Compare URLs loosely: case-insensitive host, no trailing slash, no #fragment."""
     p = urlparse(u.strip())
     return f"{p.scheme.lower()}://{p.netloc.lower()}{p.path.rstrip('/')}" + (f"?{p.query}" if p.query else "")
 
 
-def claims(d: GuideDraft):
-    yield d.dev_time
-    yield d.launch_time
-    yield d.app_type
-    for group in (d.own_app_reasons, d.prerequisites, d.steps, d.scopes, d.approval, d.pitfalls, d.support,
-                  getattr(d, "observed", [])):
+def claims(guide: GuideDraft):
+    """Every evidence-carrying claim in a guide, in page order."""
+    yield guide.dev_time
+    yield guide.launch_time
+    yield guide.app_type
+    for group in (guide.own_app_reasons, guide.prerequisites, guide.steps, guide.scopes, guide.approval, guide.pitfalls,
+                  guide.support, getattr(guide, "observed", [])):
         yield from group
 
 
@@ -229,6 +238,7 @@ NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
 
 
 def numbers_on_page(c: Claim, page: str) -> bool:
+    """Every number in the claim (5,000 / 24 / 2.0) appears on the page. Digits only: "six months" won't match "6"."""
     page = page.replace(",", "")
     return all(x.replace(",", "") in page for x in NUMBER.findall(f"{c.label} {c.text}"))
 
@@ -236,7 +246,7 @@ def numbers_on_page(c: Claim, page: str) -> bool:
 SCOPE = re.compile(r"https?://\S+|[\w-]+(?:[.:][\w*-]+)+")
 
 
-def scope_on_page(s: "Scope", page: str) -> bool:
+def scope_on_page(s: Scope, page: str) -> bool:
     """A scope claim is backed only if one of its scope strings (crm.objects.contacts.read, https://mail.google.com/) is on the page."""
     return any(t.rstrip(".,;)") in page for t in SCOPE.findall(f"{s.label} {s.text}"))
 
@@ -252,14 +262,14 @@ def per_app_limits(c: Claim, page: str) -> bool:
     return bool(unit) and bool(re.search(rf"\bper (?:\w+ )?{unit}\b|\b{unit}[- ]level\b", page, re.I))
 
 
-def gate(d: GuideDraft, seen: dict[str, str], browsed: set[str], redirect_uri: str) -> int:
+def gate(guide: GuideDraft, seen: dict[str, str], browsed: set[str], redirect_uri: str) -> int:
     """Enforce the evidence rules in place; returns how many claims were downgraded or dropped.
     seen maps each url the agents read this run to the text they saw there."""
     seen, browsed = {norm(u): t for u, t in seen.items()}, {norm(u) for u in browsed}
-    steps = {id(s) for s in d.steps}
-    n = sum(downgrade(c, seen, browsed, is_step=id(c) in steps) for c in claims(d))
-    n += drop_unbacked_quota_reasons(d, seen)
-    for s in d.steps:
+    steps = {id(s) for s in guide.steps}
+    n = sum(downgrade(c, seen, browsed, is_step=id(c) in steps) for c in claims(guide))
+    n += drop_unbacked_quota_reasons(guide, seen)
+    for s in guide.steps:
         clean_step(s, redirect_uri)
     return n
 
@@ -285,11 +295,11 @@ def backed_by_page(c: Claim, page: str) -> bool:
     return numbers_on_page(c, page) and (not isinstance(c, Scope) or scope_on_page(c, page))
 
 
-def drop_unbacked_quota_reasons(d: GuideDraft, seen: dict[str, str]) -> int:
+def drop_unbacked_quota_reasons(guide: GuideDraft, seen: dict[str, str]) -> int:
     """'Own app = own rate limits' was the most common wrong claim in the audit: keep it only when the page backs it."""
-    kept = [c for c in d.own_app_reasons
+    kept = [c for c in guide.own_app_reasons
             if not QUOTA.search(f"{c.label} {c.text}") or per_app_limits(c, seen.get(norm(c.source_url), ""))]
-    dropped, d.own_app_reasons = len(d.own_app_reasons) - len(kept), kept
+    dropped, guide.own_app_reasons = len(guide.own_app_reasons) - len(kept), kept
     return dropped
 
 
@@ -302,12 +312,10 @@ def clean_step(s: Step, redirect_uri: str) -> None:
             f.value = redirect_uri
 
 
-BROKEN = {0, 404, 410}
-
-
-def apply_links(d: GuideDraft, links: dict[str, int]) -> int:
+def apply_links(guide: GuideDraft, links: dict[str, int]) -> int:
+    """A claim whose cited page is gone becomes uncertain; returns how many changed."""
     n = 0
-    for c in claims(d):
+    for c in claims(guide):
         if c.source_url and links.get(c.source_url) in BROKEN and c.tag != "uncertain":
             c.tag, n = "uncertain", n + 1
     return n

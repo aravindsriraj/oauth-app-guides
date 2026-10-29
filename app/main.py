@@ -37,13 +37,13 @@ def home(request: Request):
 @app.post("/generate")
 async def generate(request: Request, app_input: str = Form(alias="app")):
     global ACTIVE
-    q = app_input.strip()
-    if not q or len(q) > 80 or not re.fullmatch(r"[\w .:/&+\-]+", q):
+    query = app_input.strip()
+    if not query or len(query) > 80 or not re.fullmatch(r"[\w .:/&+\-]+", query):
         return page(request, "message.html", 400, title="Try another name",
                     text="Enter an app name or website, up to 80 characters.")
     async with httpx.AsyncClient(timeout=15) as client:
-        facts = await resolve(q, client)
-    name = facts["name"] if facts else q
+        facts = await resolve(query, client)
+    name = facts["name"] if facts else query
     slug = slugify(facts["toolkit"] if facts else name)
     if not slug:
         return page(request, "message.html", 400, title="Try another name", text="That name has no letters or digits.")
@@ -63,7 +63,7 @@ async def generate(request: Request, app_input: str = Form(alias="app")):
     async def go():
         global ACTIVE
         try:
-            await pipeline.run(q, run["events"].append, facts)
+            await pipeline.run(query, run["events"].append, facts)
         except Exception as e:  # the page must always learn the run ended
             run["events"].append({"kind": "error", "text": f"The run failed ({type(e).__name__}). Try again in a minute."})
         finally:
