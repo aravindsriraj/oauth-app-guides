@@ -1,5 +1,7 @@
 """Self-check for the deterministic logic: uv run python -m app.check"""
-from app.guide import Claim, Entry, GuideDraft, Scope, Step, apply_links, classify_probe, gate, query_for, slugify
+from app.guide import Claim, Entry, Guide, GuideDraft, Scope, Step, apply_links, classify_probe, gate, query_for, slugify
+from app.main import T
+from app.pipeline import name_and_slug
 
 # input -> toolkit search query
 assert query_for("https://www.hubspot.com/") == "hubspot"
@@ -7,6 +9,8 @@ assert query_for("linear.app") == "linear"
 assert query_for("app.hubspot.com/oauth") == "hubspot"
 assert query_for("Google Sheets") == "google sheets"
 assert slugify("Google Sheets!") == "google-sheets"
+assert name_and_slug("  Acme Widgets ", None) == ("Acme Widgets", "acme-widgets")
+assert name_and_slug("linear.app", {"name": "Linear", "toolkit": "linear"}) == ("Linear", "linear")
 
 # authorize-URL probe, using responses seen live on 2026-10-28
 assert classify_probe(200, "https://accounts.google.com/signin/oauth/error?authError=x", "Error 401: invalid_client") == "rejects_fake_client"
@@ -14,8 +18,9 @@ assert classify_probe(401, "https://oauth.pipedrive.com/oauth/authorize", '{"err
 assert classify_probe(200, "https://linear.app/oauth/authorize?client_id=x", "Linear Loading…") == "responds"
 assert classify_probe(404, "https://x.com/oauth", "Not Found") == "error"  # a dead endpoint is just an error we report
 assert classify_probe(403, "https://x.com/oauth", "Attention Required! | Cloudflare") == "blocked"
-# Google's error page lives under /signin/: an error we can't read is "responds", never a login wall
+# Google's error text can sit after 20k+ characters of script, so the whole page is read
 assert classify_probe(200, "https://accounts.google.com/signin/oauth/error", "<script>" + "x" * 30000 + "</script>Error 401: invalid_client") == "rejects_fake_client"
+# an error page we can't read is "responds", never a login wall, even under /signin/
 assert classify_probe(200, "https://accounts.google.com/signin/oauth/error?authError=x", "Error 400 (Bad Request)") == "responds"
 
 # evidence gate
@@ -55,7 +60,6 @@ assert apply_links(d, {"https://docs.x.com/gone": 404, "https://docs.x.com/block
 assert [p.tag for p in d.pitfalls] == ["uncertain", "sourced"]
 
 # browser observations on the Guide go through the same gate
-from app.guide import Guide
 g = Guide(**draft().model_dump(), slug="x", app_name="X", observed=[
     Claim(text="login wall", tag="tested", source_url="https://x.com/signup"),
     Claim(text="read in docs", tag="tested", source_url="https://docs.x.com/a")])
@@ -86,7 +90,6 @@ gate(d, seen={"https://l.app/limits": "OAuth App | 5,000 | User", "https://g.com
 assert [c.text[:5] for c in d.own_app_reasons] == ["Quota", "Your "], d.own_app_reasons
 
 # markdown version of a guide renders all ten sections
-from app.main import T
 g = Guide(**draft().model_dump(), slug="x", app_name="X", composio={
     "toolkit": "x", "auth_modes": ["OAUTH2"], "managed": False, "redirect_uri": "https://backend.composio.dev/api/v1/auth-apps/add"})
 md = T.get_template("guide.md").render(g=g)

@@ -47,8 +47,7 @@ async def generate(request: Request, app_input: str = Form(alias="app")):
                     text="Enter an app name or website, up to 80 characters.")
     async with httpx.AsyncClient(timeout=15) as client:
         facts = await resolve(query, client)
-    name = facts["name"] if facts else query
-    slug = slugify(facts["toolkit"] if facts else name)
+    name, slug = pipeline.name_and_slug(query, facts)
     if not slug:
         return page(request, "message.html", 400, title="Try another name", text="That name has no letters or digits.")
     if slug in RUNS and not RUNS[slug]["done"]:

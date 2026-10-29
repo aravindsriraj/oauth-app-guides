@@ -78,14 +78,19 @@ def share_trace(run_id: uuid.UUID) -> str:
 COMPOSIO_DOCS = "https://docs.composio.dev/toolkits/managed-auth"
 
 
+def name_and_slug(app_input: str, facts: dict | None) -> tuple[str, str]:
+    """The app's display name and the guide's id: Composio's names when it has a toolkit, else the input as typed."""
+    name = (facts or {}).get("name") or app_input.strip()
+    return name, slugify((facts or {}).get("toolkit") or name)
+
+
 async def run(app_input: str, emit, facts: dict | None) -> Guide | None:
     """facts: the Composio toolkit details from resolve(), or None if Composio has no toolkit for this app."""
     t0 = time.time()
     # one progress line on the live page
     line = lambda text, tag="", url="", who="checks": emit({"kind": "line", "who": who, "text": text, "tag": tag, "url": url})
     toolkit = facts or {}
-    name = toolkit.get("name") or app_input.strip()
-    slug = slugify(toolkit.get("toolkit") or name)
+    name, slug = name_and_slug(app_input, facts)
 
     checks, website = await plain_checks(app_input, name, facts, line)
     ctx = Ctx(name=name, facts=toolkit, checks=checks, emit=emit, upload=lambda u: upload_shot(u, slug))
