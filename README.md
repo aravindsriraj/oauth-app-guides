@@ -26,22 +26,18 @@ Every claim in a guide is marked **tested** (seen during research), **sourced** 
 
 ```mermaid
 flowchart TD
-    U["Developer's browser"] -->|"app name or website"| W["Web app<br/>FastAPI on Cloud Run"]
-    W --> C["1–2. Plain checks in code<br/>Composio toolkit facts, website, sign-in URL"]
-    C --> L["3. Lead writer<br/>Deep Agents + Gemini"]
-    L -->|"briefs all three at once"| team
-    subgraph team ["Three specialists, in parallel"]
-        S1["Setup researcher<br/>reads the setup docs"]
-        S2["Approval researcher<br/>review rules, waits, caps"]
-        S3["Portal explorer<br/>real browser, screenshots"]
+    U["Developer enters an app name or website"] --> W["Web app on Cloud Run<br/>streams live progress to the browser"]
+    W --> C["Plain checks in code<br/>Composio toolkit facts, website, sign-in URL"]
+    C --> team
+    subgraph team ["Research team: Deep Agents + Gemini"]
+        L["Lead writer"] --> S1["Setup researcher<br/>setup docs"]
+        L --> S2["Approval researcher<br/>review rules, waits, caps"]
+        L --> S3["Portal explorer<br/>real browser, screenshots"]
     end
     team -->|"search, read pages, browse"| T["Composio tools"]
-    team -->|"findings"| L
-    L --> E["4. Evidence check in code"]
-    E --> B[("5. Cloud Storage<br/>guide, screenshots, icon")]
-    B -->|"shareable guide"| U
-    W -.->|"live progress"| U
-    L -.->|"every step traced"| LS["LangSmith<br/>public trace"]
+    team --> E["Evidence check in code"]
+    E --> B[("Cloud Storage<br/>guide, screenshots, icon")]
+    B --> G["Shareable guide page<br/>with Markdown version and public trace"]
 ```
 
 1. **Find the app in Composio.** Code looks the app up in Composio's API. That says whether Composio already provides an OAuth app, and gives the exact redirect URL and default scopes. The model never guesses those.
