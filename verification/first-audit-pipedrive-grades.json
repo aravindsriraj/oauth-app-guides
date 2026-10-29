@@ -1,0 +1,177 @@
+[
+ {
+  "index": 0,
+  "grade": "P",
+  "text": "Registering a developer sandbox account, opening Developer Hub, registering an app, configuring scopes, and obtaining OA"
+ },
+ {
+  "index": 1,
+  "grade": "P",
+  "text": "Private apps can be shared with customers immediately once marked live (same day); public apps submitted for Marketplace"
+ },
+ {
+  "index": 2,
+  "grade": "C",
+  "text": "Create a Private App to connect accounts via a direct installation link without Marketplace review, or create a Public A"
+ },
+ {
+  "index": 3,
+  "grade": "N",
+  "text": "Users see your product name and logo instead of a third-party app during OAuth authorization."
+ },
+ {
+  "index": 4,
+  "grade": "W",
+  "text": "Own OAuth client credentials avoid sharing burst and daily token limits with other integrations."
+ },
+ {
+  "index": 5,
+  "grade": "P",
+  "text": "Request only the specific entity permissions required by your application features."
+ },
+ {
+  "index": 7,
+  "grade": "N",
+  "text": "Admin privileges within the sandbox company to access Settings and Developer Hub."
+ },
+ {
+  "index": 8,
+  "grade": "P",
+  "text": "The exact OAuth callback URL: https://backend.composio.dev/api/v1/auth-apps/add."
+ },
+ {
+  "index": 9,
+  "grade": "C",
+  "text": "Go to developers.pipedrive.com and submit the Developer Sandbox account registration form. Confirm your email to activat"
+ },
+ {
+  "index": 10,
+  "grade": "C",
+  "text": "Log in to your sandbox account, click your profile icon in the top right, select the sandbox company name, and click Dev"
+ },
+ {
+  "index": 11,
+  "grade": "C",
+  "text": "Click Create an app and choose Create private app (or Create public app if submitting for Marketplace listing)."
+ },
+ {
+  "index": 12,
+  "grade": "C",
+  "text": "In the Basic info tab, enter your App name and paste the Composio redirect URI into the Callback URL field, then click S"
+ },
+ {
+  "index": 13,
+  "grade": "P",
+  "text": "Navigate to the OAuth & access scopes tab and check activities:full, contacts:full, leads:full, mail:full, products:full"
+ },
+ {
+  "index": 14,
+  "grade": "C",
+  "text": "Copy the generated Client ID and Client Secret from the OAuth & access scopes tab to enter into Composio."
+ },
+ {
+  "index": 15,
+  "grade": "C",
+  "text": "Click Save, then click the Change to live button to activate the app for external installations via direct link."
+ },
+ {
+  "index": 16,
+  "grade": "N",
+  "text": "activities:full provides full read and write access to Pipedrive activities without requiring restricted scope review."
+ },
+ {
+  "index": 17,
+  "grade": "N",
+  "text": "contacts:full provides full read and write access to persons and organizations without requiring restricted scope review"
+ },
+ {
+  "index": 18,
+  "grade": "N",
+  "text": "leads:full provides full read and write access to leads without requiring restricted scope review."
+ },
+ {
+  "index": 19,
+  "grade": "N",
+  "text": "mail:full provides full read and write access to mail messages and threads without requiring restricted scope review."
+ },
+ {
+  "index": 20,
+  "grade": "N",
+  "text": "products:full provides full read and write access to products without requiring restricted scope review."
+ },
+ {
+  "index": 21,
+  "grade": "N",
+  "text": "projects:full provides full read and write access to projects and tasks without requiring restricted scope review."
+ },
+ {
+  "index": 22,
+  "grade": "C",
+  "text": "Review is required only for public apps published on the Pipedrive Marketplace; private apps do not require review and c"
+ },
+ {
+  "index": 23,
+  "grade": "P",
+  "text": "Pipedrive reviews installation and uninstallation flows, OAuth 2.0 flow compliance, token refresh implementation, minima"
+ },
+ {
+  "index": 24,
+  "grade": "P",
+  "text": "Public app marketplace review may take up to 21 business days depending on queue volume."
+ },
+ {
+  "index": 25,
+  "grade": "N",
+  "text": "Pipedrive does not charge any submission or review fee for marketplace apps."
+ },
+ {
+  "index": 26,
+  "grade": "P",
+  "text": "Common rejections include requesting excessive scopes, using API tokens instead of OAuth 2.0, failing to refresh access "
+ },
+ {
+  "index": 27,
+  "grade": "C",
+  "text": "Draft apps can only be installed and tested within your developer sandbox account before being toggled to live or submit"
+ },
+ {
+  "index": 28,
+  "grade": "C",
+  "text": "Developer Hub is accessible only inside a Developer Sandbox account, not from standard production accounts."
+ },
+ {
+  "index": 29,
+  "grade": "C",
+  "text": "Pipedrive allows only one callback URL per registered OAuth app."
+ },
+ {
+  "index": 30,
+  "grade": "C",
+  "text": "Sandbox accounts are deleted if inactive for 45 days without creating an app, or 6 months without publishing an app or m"
+ },
+ {
+  "index": 31,
+  "grade": "C",
+  "text": "App type (public vs private) cannot be changed in Developer Hub once created; switching requires creating a new app."
+ },
+ {
+  "index": 32,
+  "grade": "N",
+  "text": "Users cannot grant partial permissions; all requested scopes must be accepted together at installation."
+ },
+ {
+  "index": 33,
+  "grade": "N",
+  "text": "Pipedrive OAuth access tokens expire after 60 minutes and must be refreshed regularly using refresh tokens."
+ },
+ {
+  "index": 34,
+  "grade": "C",
+  "text": "Email marketplace developer support at marketplace.devs@pipedrive.com."
+ },
+ {
+  "index": 35,
+  "grade": "C",
+  "text": "Ask questions and get help on the official Pipedrive Developers Community forum at devcommunity.pipedrive.com."
+ }
+]
