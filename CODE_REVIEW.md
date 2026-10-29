@@ -23,7 +23,7 @@ Each component was then challenged with run data: was it ever exercised, and wou
 | `app/main.py` | 124 | Routes, live progress over SSE, one-run-at-a-time and daily limits | 6 A, 1 C (`generate`, mostly input checks) | A |
 | `app/check.py` | 97 | Assertions for every evidence rule and the probe classifier | A | A |
 
-Overall: average A (3.8), nothing worse than C, pyflakes clean. 48 of 55 functions have docstrings. The other 7 are named for exactly what they do (`health`, `save_guide`, `load_guide`) or are nested helpers of 2–8 lines. The longest function is `_tools` (78 lines): it defines the three tools, and each tool has its own docstring.
+Overall: average A (3.7), nothing worse than C, pyflakes clean. 48 of 55 functions have docstrings. The other 7 are named for exactly what they do (`health`, `save_guide`, `load_guide`) or are nested helpers of 2–8 lines. The longest function is `_tools` (78 lines): it defines the three tools, and each tool has its own docstring.
 
 ## Where each component comes from
 
