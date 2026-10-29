@@ -8,7 +8,7 @@ Look up an app and see what it takes to get an OAuth app ready for your users:
 - what can block approval;
 - which steps an agent can do and where you take over.
 
-Type any app name or website and a team of agents researches it live, in 3–5 minutes, then produces a guide you can share. Every claim is tagged **tested**, **sourced** or **uncertain**, and code enforces those tags.
+Type any app name or website and a team of agents researches it live, in 3–5 minutes, then produces a guide you can share. This includes apps Composio has no toolkit for, such as Strava. Every claim is tagged **tested**, **sourced** or **uncertain**, and code enforces those tags.
 
 The library has Linear (easy), Slack (medium), HubSpot (medium), Pipedrive (medium) and Gmail (hard).
 
@@ -113,7 +113,7 @@ app/pipeline.py   one guide run, storage, CLI
 app/main.py       web routes, live streaming, limits
 app/check.py      self-check
 app/templates/    pages and the Markdown version
-verification/     audited guides; source_passages.py (audit helper); regate.py (re-runs the evidence rules on saved guides)
+verification/     audited guides and first-audit grades; source_passages.py (audit helper); regate.py (re-runs the evidence rules on saved guides)
 ```
 
 About 1,000 lines of Python in five files. Complexity (radon) averages A (3.7); nothing is worse than C, and every module scores A for maintainability. [CODE_REVIEW.md](CODE_REVIEW.md) walks through each module and each component, what was cut, and why the rest stays.

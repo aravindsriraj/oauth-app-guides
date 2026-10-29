@@ -1,6 +1,6 @@
 """Print, for each sourced claim in a saved guide, the best-matching passage from its cited page.
 Usage: uv run python verification/source_passages.py verification/final-linear.json"""
-import json, re, sys
+import re, sys
 from composio import Composio
 sys.path.insert(0, ".")
 from app.guide import Guide, claims
