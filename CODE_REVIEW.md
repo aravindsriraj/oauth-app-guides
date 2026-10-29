@@ -76,6 +76,20 @@ Nothing here was added speculatively. Each piece traces to the assignment, to a 
 - **Long functions split into named steps:** `run()` (C 18 → B 8) and `gate()` (D 27 → B 6).
 - **Prompts** moved to named constants, verified byte-identical to the inline versions.
 
+## Review record, file by file
+
+Every file was read in full after the last change.
+
+| File | Findings | Fixed |
+|---|---|---|
+| `app/guide.py` | Undocumented non-obvious functions. `c` and `d` meaning different things in different places. `BROKEN` far from the status codes that define it. The probe sent no scope, read only 20k characters, and had a `login_wall` outcome that was always wrong. A 27-point `gate`. | All |
+| `app/agent.py` | Prompts inline in `build()`. An inner `run` shadowing the pipeline's. Single-letter variables in the tools. Uncommented polling loop. No retry for Gemini's 400s. | All. Prompts verified byte-identical. |
+| `app/pipeline.py` | `run()` doing three jobs (C 18). `c`, `m`, `tc`, `o`, `v`, `x` names. Lazy bucket unexplained. The stream's shape undocumented. Name/slug logic duplicated in `main.py`. | All |
+| `app/main.py` | No route docstrings. A redundant SSE ping. The name/slug duplicate. `q`. A failed run left no traceback in the logs. | All |
+| `app/check.py` | Imports in the middle of the file. A comment sitting above the wrong assertion. | All |
+| `app/templates/*` | Blocks and fields for the removed per-step screenshots and `checked_at`. | Removed; grep confirms no leftovers |
+| `verification/*.py` | Paths hard-coded to one machine (source_passages.py). | Takes a guide file as its argument |
+
 ## How each change was checked
 
 - **Self-check:** `uv run python -m app.check`.
