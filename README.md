@@ -1,99 +1,106 @@
 # OAuth App Guides
 
-**Live:** https://oauth-guides-968299856642.us-central1.run.app · **Source:** https://github.com/aravindsriraj/oauth-app-guides
+Before your AI agent's users can connect an app like HubSpot or Gmail, you often have to register an OAuth app with that provider, and sometimes get it approved. This project tells you, for any app, what that takes:
 
-Look up an app and see what it takes to get an OAuth app ready for your users:
-- how hard it is;
-- how long it takes, split into "working for you in development" and "ready for any customer" (including review waits);
-- what can block approval;
-- which steps an agent can do and where you take over.
+- **How hard it is**: easy, medium or hard.
+- **How long it takes**: until it works for you, and until any customer can connect, including review waits.
+- **What can block you**: install caps, reviews, security assessments, limits on unreviewed apps.
+- **Who does what**: which steps you do yourself and which an agent can do.
 
-Type any app name or website and a team of agents researches it live, in 3–5 minutes, then produces a guide you can share. This includes apps Composio has no toolkit for, such as Strava. Every claim is tagged **tested**, **sourced** or **uncertain**, and code enforces those tags.
+Every claim in a guide is marked **tested** (seen during research), **sourced** (stated on the linked page) or **uncertain** (check before relying on it).
 
-The library has Linear (easy), Slack (medium), HubSpot (medium), Pipedrive (medium) and Gmail (hard).
+**Live:** https://oauth-guides-968299856642.us-central1.run.app
+**Source:** https://github.com/aravindsriraj/oauth-app-guides
 
-## The problem, as I understood it
+## Try it in a minute
 
-There are three layers:
-1. **The provider OAuth app.** The developer registers it in the provider's console. It holds the client ID and secret, redirect URI, scopes and the consent-screen branding, and sometimes needs review.
-2. **The integration.** A Composio auth config that holds those credentials.
-3. **The user connections.** Each end user consents on that app's screen.
+1. **Open a guide from the library:**
+   - Linear (easy);
+   - Slack, HubSpot or Pipedrive (medium);
+   - Gmail (hard).
 
-Composio provides managed OAuth apps for 124 toolkits. For the other 258, the developer must bring their own app before a single user can connect. Even with a managed app, developers often need their own before launch: their name on the consent screen, extra scopes, their own quota.
-
-The hard part isn't the form. It's the unknowns: how long review takes, what triggers it, and what breaks after launch.
-
-## Scope, and why
-
-- **"Ready for any customer" is the finish line.** Difficulty and time measure the whole path, not just creating the app. That's where developers get surprised: Gmail's security assessment, HubSpot's 25-install cap, Slack's limits on unlisted apps.
-- **Composio's facts are ground truth.** Each guide opens with "Do you need your own app?", answered from Composio's API. It ends with the hand-off: paste the credentials into a Composio auth config, then test the connection. The redirect URI and default scopes come from Composio, never from the model.
-- **Agents work on public pages only.** They read docs, search, and open the developer portal in a real browser for screenshots, but never sign up, log in or submit forms. That's the line between what an agent can safely try and where the human takes over. It's also why setup steps are *sourced*, never *tested*.
-- **Honesty is built in, not prompted.** Model output is checked by code (see VERIFICATION.md). Uncertain claims are listed at the end of each guide, and every guide links to its public research trace.
+   The summary on the right answers how hard it is and how long it takes. The numbered steps show exactly what to do.
+2. **Research a new app.** Type a name or website into the search box, or click one of the "Try" suggestions. You'll watch three agents work in parallel, live screenshots included, and get a shareable guide in 3–5 minutes. This works for apps Composio doesn't cover too, such as Strava.
 
 ## How it works
 
-```
-app name or URL
-  → resolve to a Composio toolkit (plain code: Composio API)
-  → plain checks: website loads, authorize URL probed with a fake client_id
-  → lead writer (Deep Agents) briefs 3 specialists that run in parallel:
-       setup researcher     – docs: app type, steps, field values, prerequisites
-       approval researcher  – review rules, waits, costs, limits on unreviewed apps
-       portal explorer      – real browser on public pages, screenshots
-  → lead writer assembles the guide (structured output)
-  → evidence gate + link check (plain code) → saved to Cloud Storage → /guides/<app>
+```mermaid
+flowchart LR
+    U["Developer's browser"] -- "app name or website" --> W["Web app<br/>FastAPI on Cloud Run"]
+    W -- "live progress" --> U
+    W --> R["Guide run"]
+    R --> F["Composio API<br/>toolkit facts"]
+    R --> H["Plain HTTP checks<br/>website, sign-in URL"]
+    R --> L["Lead writer<br/>(Deep Agents)"]
+    L --> S1["Setup researcher"]
+    L --> S2["Approval researcher"]
+    L --> S3["Portal explorer"]
+    S1 & S2 -- "web search, read pages" --> T["Composio tools"]
+    S3 -- "real browser, screenshots" --> T
+    L --> E["Evidence check<br/>(plain code)"]
+    E --> B[("Cloud Storage<br/>guides, screenshots, icons")]
+    B --> W
+    R -.-> LS["LangSmith<br/>public research trace"]
 ```
 
-- **Tools:** all external research goes through a Composio session using `composio_search` (web search, page reading) and `browser_tool` (browsing, screenshots).
-- **Model:** Gemini `gemini-3.8-flash` for every agent. It beat `gemini-3.1-pro-preview` on Gmail: faster, cheaper, more detailed.
-- **Tracing:** every run is traced in LangSmith, and each guide links to its public trace.
-- **App:** FastAPI with server-rendered pages. Live progress streams over SSE and replays if you reconnect. Each guide also has a Markdown version at `/guides/<app>.md`.
+1. **Find the app in Composio.** Code looks the app up in Composio's API. That says whether Composio already provides an OAuth app, and gives the exact redirect URL and default scopes. The model never guesses those.
+2. **Run plain checks.** Code confirms the website loads and calls the provider's sign-in URL with a made-up app ID, to see whether it rejects unknown apps. These are the "tested" facts that need no AI.
+3. **Research in parallel.** A lead writer briefs three specialists at once:
+   - one reads the setup docs;
+   - one reads the review rules, waits, costs and install caps;
+   - one opens the developer pages in a real browser and takes screenshots.
+
+   They research through Composio's search, page-reading and browser tools, using Gemini (`gemini-3.8-flash`).
+4. **Check the evidence.** The lead writer turns the findings into a guide, then code checks it:
+   - a claim stays "sourced" only if its page was actually read during this run, and any number in it appears on that page;
+   - steps are never "tested", because the agents never log in;
+   - dead links make their claims "uncertain".
+5. **Save and share.** The guide goes to Cloud Storage with its own link, a Markdown version, and a public trace of every search and page behind it.
 
 ## Key decisions
 
-- **Deep Agents with three parallel specialists.** The research questions are independent. Parallel runs keep each specialist's context small and cut wall time. The lead writer must dispatch all three in its first turn.
-- **Code-enforced evidence rules.** This came out of verification:
-  - "tested" needs a page the browser actually opened;
-  - "sourced" needs a page actually read this run, and every number must appear on it;
-  - dead links downgrade their claims.
-- **Launch blockers are required answers.** Every guide must state the install cap before review and any reduced limits until review (HubSpot's 25 installs, Slack's 1 request per minute, Gmail's 100 users). Leaving these to chance meant one run missed HubSpot's cap.
-- **Corrections go into the pipeline, not the guides.** When the audit found errors we changed prompts or rules and regenerated; we never hand-edited.
-- **Audited vs live guides are labeled.** The five library guides were checked claim by claim and say so. Guides generated by visitors say they haven't been checked by a person yet; their evidence tags still apply.
-- **One instance, one live run at a time, 30 new guides a day.** That's the simplest abuse and cost control (about $0.12–0.16 of Gemini usage per guide). Existing guides are served instead of regenerated.
+- **Measure the whole path, to "any customer can connect".** Creating the app is the easy part. The surprises come later: Gmail's security assessment, HubSpot's 25-install cap, Slack's limits on apps outside its Marketplace. Every guide must state the install cap and any reduced limits before review.
+- **Composio's facts are ground truth.** Each guide opens with "Do you need your own app?", answered from Composio's API, and ends with the hand-off to a Composio auth config.
+- **Agents stay on public pages.** They read, search and browse, but never sign up, log in or submit forms. That's the honest line between what an agent can try and where you take over.
+- **Code enforces honesty, not prompts.** Each evidence rule exists because an audit caught the model making that mistake (see [VERIFICATION.md](VERIFICATION.md)).
+- **Fix the pipeline, never the guide.** When the audit found an error, we changed a prompt or a rule and regenerated. Guides are never hand-edited.
+- **Keep it small.** One Cloud Run instance, one live run at a time, and up to 30 new guides a day, at roughly $0.12–0.16 of Gemini usage each.
 
-## Verification
+## How we know the guides are right
 
-See [VERIFICATION.md](VERIFICATION.md).
+We checked every sourced claim in the five library guides against the page it cites: **143 claims, 62% confirmed, 31% partly supported, 8% not on the cited page, 0 wrong.**
 
-Two audits, each checking every sourced claim against its cited page by hand:
-- **First audit** (three early guides, 109 claims): 26% not on the cited page and 2% wrong. Each systematic error became a pipeline fix.
-- **Audit of the shipped library** (all five guides, 143 claims): 62% confirmed, 31% partly supported, 8% not on the cited page, 0 wrong. The errors this audit and the code review found were fixed in the pipeline and those guides regenerated: a scope field in Linear's form (traced to a prompt), and Gmail's probe result (traced to the probe).
+An earlier round of checks found real errors, each fixed in the pipeline:
+- Slack's 2025 rate limits for apps outside its Marketplace were missing;
+- HubSpot's 25-install cap was missed in one run;
+- the "your own app gets your own rate limits" reason was wrong for Linear and Pipedrive;
+- Gmail's sign-in check was misread.
 
-Review also caught limits the agents had missed: Slack's 2025 rate limits for non-Marketplace apps, and HubSpot's 25-install cap before listing.
+Library guides carry an "Audited" badge. Guides generated by visitors say they haven't been checked by a person yet. Details are in [VERIFICATION.md](VERIFICATION.md).
 
 ## Limitations
 
-- **"Sourced" means a page was read and cited, not that a second reader checked it supports the claim.** Code checks numbers and rate-limit reasons, but not the meaning of every sentence. Next step: a citation-checking pass that re-reads each cited page.
-- **Coverage varies between runs.** An agent can miss a fact one run and find it the next. The required launch-blocker fields cover the facts that matter most.
 - **Nothing behind a login is tested.** No app was submitted for review, so wait times are the providers' own estimates.
-- **Third-party sources for numbers are discouraged in prompts but not blocked in code.** Telling an official domain from a third-party one isn't reliable from the URL alone (Slack's docs moved to docs.slack.dev).
-- **Runs live in memory on a single Cloud Run instance.** A redeploy during a run loses that run, but saved guides are unaffected.
-- **5 guides, not 100.** Scaling means looping the CLI over Composio's OAuth toolkits, at about 4 minutes and $0.15 per guide. The home page lists every guide from storage on each view; at 100 guides that should become an index file.
+- **"Sourced" means the page was read and cited.** Code checks numbers, scopes and rate-limit claims against the page, but not the meaning of every sentence.
+- **An agent can miss a fact in one run and find it in the next.** The required install-cap and limits answers cover the facts that matter most.
+- **One instance keeps live runs in memory.** A redeploy during a run loses that run; saved guides are unaffected.
+- **5 guides, not 100.** Scaling means running the command-line tool over Composio's OAuth toolkits, at about 4 minutes and $0.15 each.
 
-## Run it
+## Run it yourself
 
-You'll need Python 3.13, [uv](https://docs.astral.sh/uv/), a Google Cloud Storage bucket, and Application Default Credentials (`gcloud auth application-default login`).
+You need Python 3.13, [uv](https://docs.astral.sh/uv/), a Google Cloud Storage bucket, and `gcloud auth application-default login`.
 
 ```bash
 uv sync
 export GEMINI_API_KEY=... COMPOSIO_API_KEY=... BUCKET=your-bucket
-export LANGSMITH_API_KEY=... LANGSMITH_TRACING=true LANGSMITH_PROJECT=oauth-guides   # optional; enables trace links
-uv run python -m app.check                     # self-check of the evidence rules
-uv run python -m app.pipeline "Linear"         # generate one guide from the CLI
-uv run uvicorn app.main:app --port 8080        # web app
+export LANGSMITH_API_KEY=... LANGSMITH_TRACING=true LANGSMITH_PROJECT=oauth-guides   # optional: public trace links
+
+uv run python -m app.check                   # self-check of the evidence rules
+uv run python -m app.pipeline "Linear"       # research one app from the command line
+uv run uvicorn app.main:app --port 8080      # the web app, at http://localhost:8080
 ```
 
-Deploy (Cloud Run, keys in Secret Manager):
+To deploy to Cloud Run, keep the keys in Secret Manager. The bucket needs public read access for screenshots and icons.
 
 ```bash
 gcloud run deploy oauth-guides --source . --region us-central1 --allow-unauthenticated \
@@ -102,18 +109,15 @@ gcloud run deploy oauth-guides --source . --region us-central1 --allow-unauthent
   --set-env-vars BUCKET=<bucket>,LANGSMITH_TRACING=true,LANGSMITH_PROJECT=oauth-guides,DAILY_CAP=30
 ```
 
-The bucket needs public read for screenshots, and the service account needs object access to the bucket and secret access to the three secrets.
+## What's where
 
-## Repo
-
-```
-app/guide.py      data model, evidence gate, probes, Composio toolkit lookup
-app/agent.py      the agent team and its Composio tools
-app/pipeline.py   one guide run, storage, CLI
-app/main.py       web routes, live streaming, limits
-app/check.py      self-check
-app/templates/    pages and the Markdown version
-verification/     audited guides and first-audit grades; source_passages.py (audit helper); regate.py (re-runs the evidence rules on saved guides)
-```
-
-About 1,080 lines of Python in five files. Complexity (radon) averages A (3.9); nothing is worse than C, and every module scores A for maintainability. [CODE_REVIEW.md](CODE_REVIEW.md) walks through each module and each component, what was cut, and why the rest stays.
+| Path | What it does |
+|---|---|
+| `app/main.py` | Web pages, live progress, limits |
+| `app/pipeline.py` | One guide run: plain checks, research, evidence check, save |
+| `app/agent.py` | The four agents, their prompts, and their Composio tools |
+| `app/guide.py` | The guide's data model, the evidence rules, and the plain checks |
+| `app/check.py` | Self-check for the evidence rules |
+| `app/templates/` | The pages, plus the Markdown version of a guide |
+| `verification/` | The audited guides and scripts that re-run the checks |
+| `VERIFICATION.md` | How each guide was checked, and what was found and fixed |
