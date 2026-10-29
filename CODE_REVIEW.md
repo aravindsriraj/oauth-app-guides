@@ -48,7 +48,7 @@ Nothing here was added speculatively. Each piece traces to the assignment, to a 
 | Evidence gate (8 rules) | Trust the model's tags | **Kept.** Each rule exists because the audit found the error it prevents (VERIFICATION.md). It was split from one D (27) function into one small function per rule. |
 | Per-step screenshots | Keep attaching screenshots to steps | **Cut.** Agents never log in, so a public-page screenshot matched a step 0–1 times per guide. Screenshots now appear only in the "What our browser saw" gallery. |
 | Daily cap stored in Cloud Storage | An in-memory counter | **Kept.** Cloud Run scales to zero, so an in-memory count resets and caps nothing. The file version is 7 lines. |
-| SSE with replay | A page that polls a status URL | **Kept.** Replay via `Last-Event-ID` is a few lines, and closing the tab mid-run doesn't lose the feed. |
+| SSE with replay | A page that polls a status URL | **Kept and simplified.** Replay via `Last-Event-ID` is a few lines, and closing the tab mid-run doesn't lose the feed. The keep-alive ping was cut as redundant. |
 | Three specialists in parallel | One agent doing everything in sequence | **Kept.** The lead writer dispatches all three in one turn; runs take 2.5–5 minutes rather than adding up sequential research. |
 | LangChain provider package from Composio | Composio's generated LangChain tools | **Cut (dependency removed).** Three small tools wrapping `session.execute` give exact control over what counts as "seen". |
 | Two model settings | `ORCH_MODEL` and `SUB_MODEL` | **Cut to one `MODEL`.** Flash won for every role. |
@@ -61,6 +61,8 @@ Nothing here was added speculatively. Each piece traces to the assignment, to a 
 - `managed_scopes` in the toolkit facts, never read.
 - The probe's unused second return value.
 - The `login_wall` probe outcome, which was wrong whenever it fired.
+- The `not_found` probe outcome, which never fired in any run; a 404 is now reported as an error.
+- The SSE keep-alive ping. The browser already reconnects with `Last-Event-ID` and the server replays from there, which was tested in production by dropping a live run's connection at event 9 and resuming at event 10.
 - A `resolved` flag on `run()`, now a plain argument.
 - An unused `Ctx.slug` field.
 - An unused template global.
