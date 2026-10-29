@@ -164,7 +164,7 @@ def verdict(facts: dict, app_name: str) -> str:
 
 def classify_probe(status: int, final_url: str, body: str) -> str:
     """What the authorize URL did with our made-up client_id: one of the PROBE_TEXT keys."""
-    text = re.sub(r"<[^>]+>", " ", body[:20000])
+    text = re.sub(r"<[^>]+>", " ", body)  # the whole page: Google puts its error text after ~20k chars of script
     if re.search(r"invalid[_ ]client|client (id )?(was )?not found|unknown client|unauthorized[_ ]client|unauthorized access|invalid client_id", text, re.I):
         return "rejects_fake_client"
     if status in (404, 410):
@@ -173,15 +173,12 @@ def classify_probe(status: int, final_url: str, body: str) -> str:
         return "blocked"
     if status in (400, 401):
         return "rejects_fake_client"
-    if re.search(r"/(login|signin|sign-in|sign_in)\b", urlparse(final_url).path, re.I):
-        return "login_wall"
     return "responds" if status < 400 else "error"
 
 
 PROBE_TEXT = {
     "rejects_fake_client": "Authorize URL is live and rejects an unregistered client_id, so you need a real registered app",
     "responds": "Authorize URL is live (it renders a page; we couldn't confirm how it treats unknown apps)",
-    "login_wall": "Authorize URL is live and sends visitors to a login page first",
     "not_found": "Authorize URL returned 404; the OAuth endpoint may have moved",
     "blocked": "Authorize URL blocked our automated check (bot protection)",
     "error": "Authorize URL returned an error we couldn't classify",
@@ -190,7 +187,8 @@ PROBE_TEXT = {
 
 async def probe_authorize(facts: dict, client: httpx.AsyncClient) -> str:
     """Call the provider's authorize URL with a made-up client_id and classify the response."""
-    params = {"client_id": "composio-guide-probe", "redirect_uri": facts["redirect_uri"], "response_type": "code"}
+    params = {"client_id": "composio-guide-probe", "redirect_uri": facts["redirect_uri"], "response_type": "code",
+              "scope": " ".join(facts["default_scopes"])}  # some providers (Google) reject a request with no scope before checking the client
     try:
         r = await client.get(facts["authorize_url"], params=params, follow_redirects=True, timeout=10, headers=UA)
         return classify_probe(r.status_code, str(r.url), r.text)
