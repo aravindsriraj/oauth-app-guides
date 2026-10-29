@@ -37,6 +37,7 @@ Overall: average A (3.8), nothing worse than C, pyflakes clean.
 | Three specialists in parallel | One agent doing everything in sequence | **Kept.** The lead writer dispatches all three in one turn; runs take 2.5–5 minutes rather than adding up sequential research. |
 | LangChain provider package from Composio | Composio's generated LangChain tools | **Cut (dependency removed).** Three small tools wrapping `session.execute` give exact control over what counts as "seen". |
 | Two model settings | `ORCH_MODEL` and `SUB_MODEL` | **Cut to one `MODEL`.** Flash won for every role. |
+| Retrying failed model calls (added during the review) | Rely on the client's `max_retries` | **Added: one line using LangChain's `ModelRetryMiddleware`.** A production run died on Gemini's intermittent `400 INVALID_ARGUMENT`. The identical input succeeded a minute later, and the client doesn't retry 400s. Failed runs are now also logged with a traceback. |
 
 ## Removed during the review
 
